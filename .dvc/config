@@ -1,0 +1,4 @@
+[core]
+    remote = origin
+['remote "origin"']
+    url = https://dagshub.com/Govinthan-KS/asteroid-hazard-classifier.dvc
