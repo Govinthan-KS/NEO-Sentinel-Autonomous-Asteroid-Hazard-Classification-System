@@ -1,0 +1,10 @@
+# configs/training/training.yaml
+test_size: 0.2
+random_state: 42
+use_smote: true
+mlflow_tracking_uri: "https://dagshub.com/Govinthan-KS/Asteroid-Hazard-Classifier.mlflow"
+
+thresholds:
+  recall: 0.90
+  f1: 0.85
+  roc_auc: 0.92
