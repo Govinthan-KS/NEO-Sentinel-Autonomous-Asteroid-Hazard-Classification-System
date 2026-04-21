@@ -1,0 +1,33 @@
+version: '3.8'
+
+x-airflow-common:
+  &airflow-common
+  image: apache/airflow:2.8.4-python3.12
+  env_file:
+    - ../.env
+  environment:
+    - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+    - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=sqlite:////opt/airflow/airflow.db
+    - AIRFLOW__CORE__LOAD_EXAMPLES=False
+  volumes:
+    - ../dags:/opt/airflow/dags
+    - ../src:/opt/airflow/dags/src
+    - ../configs:/opt/airflow/configs
+    - ../logs:/opt/airflow/logs
+    - ../data:/opt/airflow/data
+
+services:
+  airflow-webserver:
+    <<: *airflow-common
+    command: webserver
+    ports:
+      - 8080:8080
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  airflow-scheduler:
+    <<: *airflow-common
+    command: scheduler

@@ -1,0 +1,9 @@
+nasa_neows_api:
+  base_url: "https://api.nasa.gov/neo/rest/v1/feed"
+  timeout_seconds: 30
+  api_key: "${oc.env:NASA_API_KEY}"
+
+storage:
+  raw_data_dir: "data/raw"
+  validated_data_dir: "data/validated"
+  processed_data_dir: "data/processed"

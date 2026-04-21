@@ -1,0 +1,6 @@
+defaults:
+  - data: ingestion
+  - _self_
+
+project_name: "asteroid-hazard-classifier"
+timezone: "UTC"
