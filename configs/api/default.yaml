@@ -1,0 +1,6 @@
+port: 7860
+host: "0.0.0.0"
+model:
+  alias: "@champion"
+  name: "asteroid-hazard-classifier"
+  registry_uri: "models:/asteroid-hazard-classifier@champion"

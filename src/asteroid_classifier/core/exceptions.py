@@ -32,3 +32,15 @@ class DriftMonitorError(AsteroidPipelineError):
     """Raised when drift monitor fails."""
 
     pass
+
+
+class ModelNotLoadedError(AsteroidPipelineError):
+    """Raised when the MLflow model fails to load at API startup."""
+
+    pass
+
+
+class PredictionError(AsteroidPipelineError):
+    """Raised when a prediction fails during API request."""
+
+    pass

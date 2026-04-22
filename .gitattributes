@@ -1,1 +1,25 @@
+# =============================================================================
+# Git Attributes — Line Ending Policy
+# Prevents Windows CRLF corruption on shell scripts committed from Windows.
+# Without this, /bin/sh would fail with: "bad interpreter: \r"
+
+# Shell scripts must always use LF (Unix) line endings in the repository
+*.sh                    text  eol=lf
+docker/entrypoint.sh    text  eol=lf
+# Standard text files — let Git normalise to LF in the repo
+*.py                    text  eol=lf
+*.yaml                  text  eol=lf
+*.yml                   text  eol=lf
+*.toml                  text  eol=lf
+*.md                    text  eol=lf
+*.txt                   text  eol=lf
+# Binary files — never touch line endings
+*.png                   binary
+*.jpg                   binary
+*.jpeg                  binary
+*.gif                   binary
+*.ico                   binary
+*.whl                   binary
+*.pkl                   binary
+*.joblib                binary
 *.jpg filter=lfs diff=lfs merge=lfs -text

@@ -1,5 +1,6 @@
 defaults:
   - data: ingestion
+  - api: default
   - _self_
 
 project_name: "asteroid-hazard-classifier"
