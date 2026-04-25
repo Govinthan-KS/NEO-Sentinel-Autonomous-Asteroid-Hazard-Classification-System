@@ -1,7 +1,17 @@
 # configs/model/xgboost.yaml
+# Gradient-boosted trees — primary model.
+# SMOTE handles class imbalance (scale_pos_weight overwritten dynamically if SMOTE disabled).
 model_type: "xgboost"
-learning_rate: 0.1
-max_depth: 6
-n_estimators: 100
+display_name: "XGBoost"
+learning_rate: 0.05
+max_depth: 7
+n_estimators: 300
+min_child_weight: 3
+subsample: 0.8
+colsample_bytree: 0.8
+gamma: 0.1
+reg_alpha: 0.1
+reg_lambda: 1.0
 random_state: 42
-scale_pos_weight: 1  # Will be dynamically overwritten if use_smote is false and we calculate it
+eval_metric: "logloss"
+scale_pos_weight: 1          # dynamically overwritten when SMOTE is disabled

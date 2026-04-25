@@ -2,6 +2,7 @@ nasa_neows_api:
   base_url: "https://api.nasa.gov/neo/rest/v1/feed"
   timeout_seconds: 30
   api_key: "${oc.env:NASA_API_KEY}"
+  lookback_days: 30          # widened from 7 for statistical stability (dev: 30, prod: 60+)
 
 storage:
   raw_data_dir: "data/raw"

@@ -1,19 +1,21 @@
 from typing import Dict, Any
 import numpy as np
-from sklearn.metrics import recall_score, f1_score, roc_auc_score
+from sklearn.metrics import recall_score, f1_score, roc_auc_score, precision_score
 from asteroid_classifier.core.exceptions import ModelPromotionError
 
 def evaluate_model(model: Any, X_test: Any, y_test: Any) -> Dict[str, float]:
     """
     Evaluates the model on test data and returns key metrics.
+    Precision is included so the promotion logic can apply its guardrail.
     """
     y_pred = model.predict(X_test)
     y_proba = model.predict_proba(X_test)[:, 1] if hasattr(model, "predict_proba") else y_pred
-    
+
     metrics = {
-        "recall": float(recall_score(y_test, y_pred)),
-        "f1": float(f1_score(y_test, y_pred)),
-        "roc_auc": float(roc_auc_score(y_test, y_proba))
+        "recall":    float(recall_score(y_test, y_pred, zero_division=0)),
+        "precision": float(precision_score(y_test, y_pred, zero_division=0)),
+        "f1":        float(f1_score(y_test, y_pred, zero_division=0)),
+        "roc_auc":   float(roc_auc_score(y_test, y_proba)),
     }
     return metrics
 

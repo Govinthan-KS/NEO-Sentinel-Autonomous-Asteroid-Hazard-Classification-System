@@ -1,5 +1,5 @@
 ---
-title: Asteroid Hazard Classifier
+title: NEO-Sentinel | Autonomous Asteroid Hazard Classification System
 emoji: ☄️
 colorFrom: indigo
 colorTo: purple
@@ -9,7 +9,7 @@ pinned: false
 license: mit
 ---
 
-# ☄️ Asteroid Hazard Classifier
+# ☄️ NEO-Sentinel: Autonomous Asteroid Hazard Classification System
 
 > **Production-grade MLOps pipeline for real-time asteroid threat classification using NASA open data.**
 
@@ -23,7 +23,7 @@ license: mit
 
 ## Project Overview
 
-This system ingests Near-Earth Object (NEO) data from NASA's NeoWs API, trains a **high-recall binary classifier** to predict whether an asteroid is potentially hazardous, and serves predictions via a REST API and interactive Gradio UI.
+NEO-Sentinel: Autonomous Asteroid Hazard Classification System ingests Near-Earth Object (NEO) data from NASA's NeoWs API, trains a **high-recall binary classifier** to predict whether an asteroid is potentially hazardous, and serves predictions via a REST API and interactive Gradio UI — all in a single production-grade Docker container deployed to HuggingFace Spaces.
 
 **Core ML Constraint:** The model is not promoted to production unless all three thresholds are met:
 
@@ -130,8 +130,8 @@ All secrets are injected via **HuggingFace Spaces → Settings → Repository Se
 | `NASA_API_KEY` | NASA NeoWs API access |
 | `DAGSHUB_TOKEN` | DagsHub authentication for MLflow Registry |
 | `MLFLOW_TRACKING_URI` | DagsHub MLflow server URL |
-| `DAGSHUB_REPO_OWNER` | DagsHub repository owner (e.g., `Govinthan-KS`) |
-| `DAGSHUB_REPO_NAME` | DagsHub repository name (e.g., `Asteroid-Hazard-Classifier`) |
+| `DAGSHUB_REPO_OWNER` | DagsHub repository owner |
+| `DAGSHUB_REPO_NAME` | DagsHub repository name |
 
 The container **validates all five variables at startup** and exits cleanly with a descriptive error if any are missing.
 
@@ -177,6 +177,44 @@ asteroid-hazard-classifier/
 │   └── entrypoint.sh           # Secret validation + Uvicorn bootstrap
 └── pyproject.toml              # Poetry dependency manifest
 ```
+
+---
+
+## 🛠️ Local Development
+
+Run the full dual-service stack locally using a `secrets.env` file so credentials never appear in your shell history.
+
+**1. Create `secrets.env`** in the project root (this file is gitignored):
+
+```env
+NASA_API_KEY=your_nasa_api_key
+DAGSHUB_TOKEN=your_dagshub_token
+MLFLOW_TRACKING_URI=https://dagshub.com/your_owner/your_repo.mlflow
+DAGSHUB_REPO_OWNER=your_dagshub_owner
+DAGSHUB_REPO_NAME=your_dagshub_repo_name
+```
+
+**2. Build and run:**
+
+```bash
+docker build -f docker/Dockerfile -t neo-sentinel:local .
+
+docker run --rm \
+  --env-file secrets.env \
+  -p 7860:7860 \
+  -p 8501:8501 \
+  neo-sentinel:local
+```
+
+**3. Verify both services:**
+
+| Service | URL |
+|---------|-----|
+| Prediction API | `http://localhost:7860/health` |
+| Gradio UI | `http://localhost:7860/ui` |
+| Admin Dashboard | `http://localhost:8501` |
+
+> **Note:** `secrets.env` is listed in `.gitignore` and must never be committed.
 
 ---
 

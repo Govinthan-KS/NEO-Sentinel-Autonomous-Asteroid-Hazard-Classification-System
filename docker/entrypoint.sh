@@ -1,7 +1,7 @@
 #!/bin/sh
 # =============================================================================
-# Asteroid Hazard Classifier — Container Entrypoint
-# Validates required environment variables, then starts the Uvicorn server.
+# NEO-Sentinel — Container Entrypoint
+# Validates required environment variables, then starts the serving layer.
 # POSIX sh (not bash) for maximum compatibility across slim base images.
 # =============================================================================
 
@@ -15,23 +15,23 @@ set -e
 # ---------------------------------------------------------------------------
 REQUIRED_VARS="NASA_API_KEY DAGSHUB_TOKEN MLFLOW_TRACKING_URI DAGSHUB_REPO_OWNER DAGSHUB_REPO_NAME"
 
-echo "[INFO] Validating required environment variables..."
+echo "[NEO-Sentinel] Validating required environment variables..."
 
 for VAR in $REQUIRED_VARS; do
     # POSIX-compatible indirect variable reference
     eval VALUE=\$$VAR
     if [ -z "$VALUE" ]; then
-        echo "[CRITICAL] Required environment variable '${VAR}' is not set or is empty."
-        echo "[CRITICAL] Startup aborted. Set all required vars in HuggingFace Spaces → Settings → Variables."
+        echo "[NEO-Sentinel][CRITICAL] Required environment variable '${VAR}' is not set or is empty."
+        echo "[NEO-Sentinel][CRITICAL] Startup aborted. Set all required vars in HuggingFace Spaces → Settings → Variables."
         exit 1
     fi
 done
 
-echo "[INFO] All 5 required environment variables validated successfully."
-echo "[INFO] DAGSHUB_REPO_OWNER=${DAGSHUB_REPO_OWNER}"
-echo "[INFO] DAGSHUB_REPO_NAME=${DAGSHUB_REPO_NAME}"
-echo "[INFO] MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI}"
-echo "[INFO] Starting Uvicorn server on 0.0.0.0:7860..."
+echo "[NEO-Sentinel] All 5 required environment variables validated successfully."
+echo "[NEO-Sentinel] DAGSHUB_REPO_OWNER=${DAGSHUB_REPO_OWNER}"
+echo "[NEO-Sentinel] DAGSHUB_REPO_NAME=${DAGSHUB_REPO_NAME}"
+echo "[NEO-Sentinel] MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI}"
+echo "[NEO-Sentinel] Starting prediction API on 0.0.0.0:7860 and admin dashboard on 0.0.0.0:8501..."
 
 # ---------------------------------------------------------------------------
 # Phase 6 — Streamlit Admin Observability Dashboard
