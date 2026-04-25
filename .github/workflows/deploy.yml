@@ -52,17 +52,15 @@ jobs:
 
       - name: Add HuggingFace Spaces as git remote
         run: |
-          # 'dummy' username + token as password is the officially recommended
-          # HuggingFace pattern for non-interactive HTTPS git auth in CI.
-          git remote add space \
-            https://dummy:${{ secrets.HUGGINGFACE_TOKEN }}@huggingface.co/spaces/${{ vars.HF_SPACE_ID }}
+          # Clean URL — no credentials embedded; auth is handled entirely via HTTP header
+          git remote add space https://huggingface.co/spaces/${{ vars.HF_SPACE_ID }}
 
       - name: Force-push repository to HuggingFace Spaces
         run: |
-          # Inject bearer token explicitly into HTTP headers — ensures the git
-          # client never falls back to interactive prompts or password auth.
+          # Inject Bearer token into HTTP headers for this git session.
+          # This is the most reliable auth method for HF's git server in CI.
           git config http.https://huggingface.co/.extraheader \
-            "AUTHORIZATION: bearer ${{ secrets.HUGGINGFACE_TOKEN }}"
+            "AUTHORIZATION: Bearer ${{ secrets.HUGGINGFACE_TOKEN }}"
           git push --force space HEAD:main
           echo "::notice::Force-push to HF Space '${{ vars.HF_SPACE_ID }}' completed."
 
