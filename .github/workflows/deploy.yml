@@ -7,9 +7,10 @@
 #   - workflow_call        → called by retrain.yml on successful champion promotion (Phase 9)
 #
 # Secrets required (GitHub Secrets):
-#   - HUGGINGFACE_TOKEN   → HF API token with write access to the target Space
+#   - HF_TOKEN            → HuggingFace API token with write access to the target Space
 #
 # Repository variables required (GitHub Actions → Variables):
+#   - HF_USERNAME         → your HuggingFace username (e.g. KSG20)
 #   - HF_SPACE_ID         → HuggingFace Space in "owner/space-name" format
 #
 # Runtime secrets (set in HF Spaces UI → Settings → Repository Secrets — NOT here):
@@ -52,7 +53,7 @@ jobs:
         run: pip install "huggingface-hub>=0.23.0"
 
       - name: Authenticate with HuggingFace
-        run: huggingface-cli login --token ${{ secrets.HUGGINGFACE_TOKEN }}
+        run: hf auth login --token ${{ secrets.HF_TOKEN }}
 
       - name: Configure git identity for HuggingFace push
         run: |
@@ -61,10 +62,10 @@ jobs:
 
       - name: Add HuggingFace Spaces as git remote
         run: |
-          # HF_SPACE_ID is a GitHub repository variable — never hardcoded
-          # Format: "owner/space-name"
+          # HF_USERNAME and HF_SPACE_ID are GitHub repository variables — never hardcoded
+          # Format: HF_USERNAME = "KSG20"  |  HF_SPACE_ID = "KSG20/neo-sentinel"
           git remote add space \
-            https://Govinthan-KS:${{ secrets.HUGGINGFACE_TOKEN }}@huggingface.co/spaces/${{ vars.HF_SPACE_ID }}
+            https://${{ vars.HF_USERNAME }}:${{ secrets.HF_TOKEN }}@huggingface.co/spaces/${{ vars.HF_SPACE_ID }}
 
       - name: Force-push repository to HuggingFace Spaces
         run: |
