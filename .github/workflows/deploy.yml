@@ -45,22 +45,20 @@ jobs:
           lfs: true        # fetch any Git LFS objects (DVC metadata, binary assets)
 
 
-      - name: Configure git identity for HuggingFace push
+      - name: Configure global URL rewrite for HuggingFace auth
         run: |
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git config user.name "github-actions[bot]"
+          # Rewrites every https://huggingface.co/ request to include the token
+          # before git even sends the request — no interactive prompt possible.
+          git config --global \
+            url."https://user:${{ secrets.HUGGINGFACE_TOKEN }}@huggingface.co/".insteadOf \
+            "https://huggingface.co/"
 
       - name: Add HuggingFace Spaces as git remote
         run: |
-          # Clean URL — no credentials embedded; auth is handled entirely via HTTP header
           git remote add space https://huggingface.co/spaces/${{ vars.HF_SPACE_ID }}
 
       - name: Force-push repository to HuggingFace Spaces
         run: |
-          # Inject Bearer token into HTTP headers for this git session.
-          # This is the most reliable auth method for HF's git server in CI.
-          git config http.https://huggingface.co/.extraheader \
-            "AUTHORIZATION: Bearer ${{ secrets.HUGGINGFACE_TOKEN }}"
           git push --force space HEAD:main
           echo "::notice::Force-push to HF Space '${{ vars.HF_SPACE_ID }}' completed."
 
