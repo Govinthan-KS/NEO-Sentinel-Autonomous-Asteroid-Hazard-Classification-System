@@ -1,0 +1,71 @@
+# ============================================================
+# retrain.yml — Scheduled Retraining Workflow (Phase 9 Stub)
+# ============================================================
+# STATUS: STUB — Full implementation is a Phase 9 deliverable.
+#
+# Triggers:
+#   - schedule (cron)    → 2 AM UTC daily — pulls latest NASA data and retrains
+#   - workflow_dispatch  → manual trigger from GitHub Actions UI
+#   - workflow_call      → called by other workflows (e.g. drift alert from Phase 8)
+#
+# Phase 9 will fill in:
+#   [PHASE 9] DVC pull from DagsHub to get the latest validated dataset
+#   [PHASE 9] Run the Airflow training DAG (or invoke trainer.py directly)
+#   [PHASE 9] Evaluate against promotion thresholds (recall, F1, ROC-AUC)
+#   [PHASE 9] Promote model to @champion alias in MLflow registry if thresholds met
+#   [PHASE 9] Trigger deploy.yml via workflow_call on successful promotion
+#
+# Secrets that Phase 9 will need (set in GitHub Secrets):
+#   - NASA_API_KEY, DAGSHUB_TOKEN, MLFLOW_TRACKING_URI,
+#     DAGSHUB_REPO_OWNER, DAGSHUB_REPO_NAME, HUGGINGFACE_TOKEN
+# ============================================================
+
+name: Scheduled Retraining Pipeline
+
+on:
+  schedule:
+    # Runs daily at 02:00 UTC
+    - cron: "0 2 * * *"
+
+  workflow_dispatch:
+    # Manual trigger from GitHub Actions UI for on-demand retraining
+
+  workflow_call:
+    # Hook point: called by drift monitoring (Phase 8) when drift threshold is exceeded
+    # Full cross-workflow integration implemented in Phase 9
+
+jobs:
+  retrain:
+    name: Retraining pipeline (Phase 9 stub)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # [PHASE 9] Set up Python 3.12 and install Poetry + all dependencies
+      # [PHASE 9] steps: actions/setup-python@v5, pip install poetry, poetry install
+
+      # [PHASE 9] Pull latest validated dataset from DagsHub via DVC
+      # [PHASE 9] step: dvc pull data/validated/ --remote dagshub
+
+      # [PHASE 9] Run ingestion DAG to fetch today's NASA NeoWs data
+      # [PHASE 9] step: poetry run python -m asteroid_classifier.data.ingestion
+
+      # [PHASE 9] Run training pipeline against the new dataset
+      # [PHASE 9] step: poetry run python -m asteroid_classifier.models.trainer
+
+      # [PHASE 9] Evaluate candidate model — check recall, F1, ROC-AUC thresholds
+      # [PHASE 9] step: poetry run python -m asteroid_classifier.models.evaluator
+
+      # [PHASE 9] Promote to @champion alias in MLflow registry if all thresholds met
+      # [PHASE 9] step: poetry run python -m asteroid_classifier.models.registry --promote
+
+      # [PHASE 9] On successful promotion, trigger deploy.yml to redeploy HF Space
+      # [PHASE 9] step: uses: ./.github/workflows/deploy.yml (workflow_call)
+
+      - name: Retraining pipeline placeholder
+        run: |
+          echo "Retraining pipeline not yet implemented — Phase 9 deliverable"
+          echo "This stub confirms triggers (schedule, workflow_dispatch, workflow_call) are wired correctly."
+          echo "Triggered by: ${{ github.event_name }}"

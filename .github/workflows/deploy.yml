@@ -1,0 +1,89 @@
+# ============================================================
+# deploy.yml — HuggingFace Spaces Deployment Workflow
+# ============================================================
+# Triggers:
+#   - push to main         → automatic deployment on every merge to production
+#   - workflow_dispatch    → manual redeploy from GitHub Actions UI
+#   - workflow_call        → called by retrain.yml on successful champion promotion (Phase 9)
+#
+# Secrets required (GitHub Secrets):
+#   - HUGGINGFACE_TOKEN   → HF API token with write access to the target Space
+#
+# Repository variables required (GitHub Actions → Variables):
+#   - HF_SPACE_ID         → HuggingFace Space in "owner/space-name" format
+#
+# Runtime secrets (set in HF Spaces UI → Settings → Repository Secrets — NOT here):
+#   - NASA_API_KEY, DAGSHUB_TOKEN, MLFLOW_TRACKING_URI,
+#     DAGSHUB_REPO_OWNER, DAGSHUB_REPO_NAME
+# ============================================================
+
+name: Deploy to HuggingFace Spaces
+
+on:
+  push:
+    branches:
+      - main
+
+  workflow_dispatch:
+    # Manual trigger from GitHub Actions UI for ad-hoc redeployments
+
+  workflow_call:
+    # Future hook: called by retrain.yml on successful champion model promotion
+    # Full integration implemented in Phase 9
+
+jobs:
+  deploy-to-hf-spaces:
+    name: Push repository to HuggingFace Spaces
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository with LFS support
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # full history required for a clean force-push
+          lfs: true        # fetch any Git LFS objects (DVC metadata, binary assets)
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install HuggingFace Hub CLI
+        run: pip install "huggingface-hub>=0.23.0"
+
+      - name: Authenticate with HuggingFace
+        run: huggingface-cli login --token ${{ secrets.HUGGINGFACE_TOKEN }}
+
+      - name: Configure git identity for HuggingFace push
+        run: |
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+
+      - name: Add HuggingFace Spaces as git remote
+        run: |
+          # HF_SPACE_ID is a GitHub repository variable — never hardcoded
+          # Format: "owner/space-name"
+          git remote add space \
+            https://Govinthan-KS:${{ secrets.HUGGINGFACE_TOKEN }}@huggingface.co/spaces/${{ vars.HF_SPACE_ID }}
+
+      - name: Force-push repository to HuggingFace Spaces
+        run: |
+          # Force-push makes GitHub main the authoritative source of truth.
+          # This prevents "diverged branch" conflicts that arise because HF Spaces
+          # maintains its own independent git history.
+          git push --force space HEAD:main
+          echo "::notice::Force-push to HF Space '${{ vars.HF_SPACE_ID }}' completed."
+
+      - name: Log deployment outcome
+        run: |
+          echo "=================================================="
+          echo "  Deployment Summary"
+          echo "=================================================="
+          echo "  Space        : ${{ vars.HF_SPACE_ID }}"
+          echo "  Branch       : main"
+          echo "  Commit SHA   : ${{ github.sha }}"
+          echo "  Triggered by : ${{ github.event_name }}"
+          echo "  Space URL    : https://huggingface.co/spaces/${{ vars.HF_SPACE_ID }}"
+          echo "=================================================="
+          echo "HuggingFace Spaces will now rebuild the Docker image automatically."
+          echo "Monitor build progress at the URL above."

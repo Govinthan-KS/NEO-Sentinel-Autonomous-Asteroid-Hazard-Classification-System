@@ -34,14 +34,15 @@ echo "[INFO] MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI}"
 echo "[INFO] Starting Uvicorn server on 0.0.0.0:7860..."
 
 # ---------------------------------------------------------------------------
-# Stage 8 (Future) — Streamlit Admin Observability Dashboard
-# Uncomment once src/asteroid_classifier/ui/dashboard.py is production-ready.
-# The dashboard will be accessible on port 8501 within the same container.
+# Phase 6 — Streamlit Admin Observability Dashboard
+# Runs in the background on port 8501 alongside Uvicorn.
+# Access: http://<space-url>:8501
+# Reads @champion metrics from MLflow Registry and tails /tmp/asteroid_api.log.
 # ---------------------------------------------------------------------------
-# streamlit run /app/src/asteroid_classifier/ui/dashboard.py \
-#     --server.port 8501 \
-#     --server.headless true \
-#     --server.address 0.0.0.0 &
+streamlit run /app/src/asteroid_classifier/ui/dashboard.py \
+    --server.port 8501 \
+    --server.headless true \
+    --server.address 0.0.0.0 &
 
 # ---------------------------------------------------------------------------
 # Primary Server — Uvicorn (ASGI)

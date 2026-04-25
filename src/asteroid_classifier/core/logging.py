@@ -15,7 +15,7 @@ LOGS_DIR.mkdir(parents=True, exist_ok=True)
 # Add stdout handler
 logger.add(sys.stdout, format=LOG_FORMAT, level="INFO")
 
-# Add file handler with rotation
+# Add file handler with rotation — primary structured log for the pipeline
 logger.add(
     LOGS_DIR / "pipeline.log",
     format=LOG_FORMAT,
@@ -24,7 +24,21 @@ logger.add(
     retention="10 days",
 )
 
+# ---------------------------------------------------------------------------
+# Phase 6 — Admin Dashboard Sink
+# Writes INFO+ logs to /tmp/asteroid_api.log so the Streamlit admin dashboard
+# can tail a single, stable path without needing access to the project LOGS_DIR.
+# Rotated at 10 MB to prevent unbounded growth inside the container's tmpfs.
+# ---------------------------------------------------------------------------
+logger.add(
+    "/tmp/asteroid_api.log",
+    format=LOG_FORMAT,
+    level="INFO",
+    rotation="10 MB",
+    retention="3 days",
+)
+
 
 def get_logger():
-    """Returns the configured loguru logger"""
+    """Returns the configured loguru logger."""
     return logger
