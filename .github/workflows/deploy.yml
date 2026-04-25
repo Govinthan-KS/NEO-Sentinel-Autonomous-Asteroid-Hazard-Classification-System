@@ -44,16 +44,6 @@ jobs:
           fetch-depth: 0   # full history required for a clean force-push
           lfs: true        # fetch any Git LFS objects (DVC metadata, binary assets)
 
-      - name: Set up Python 3.12
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install HuggingFace Hub CLI
-        run: pip install "huggingface-hub>=0.23.0"
-
-      - name: Authenticate with HuggingFace
-        run: hf auth login --token ${{ secrets.HF_TOKEN }}
 
       - name: Configure git identity for HuggingFace push
         run: |
