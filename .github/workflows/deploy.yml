@@ -7,7 +7,7 @@
 #   - workflow_call        → called by retrain.yml on successful champion promotion (Phase 9)
 #
 # Secrets required (GitHub Secrets):
-#   - HF_TOKEN            → HuggingFace API token with write access to the target Space
+#   - HUGGINGFACE_TOKEN    → HuggingFace API token with write access to the target Space
 #
 # Repository variables required (GitHub Actions → Variables):
 #   - HF_USERNAME         → your HuggingFace username (e.g. KSG20)
@@ -55,14 +55,14 @@ jobs:
           # 'dummy' username + token as password is the officially recommended
           # HuggingFace pattern for non-interactive HTTPS git auth in CI.
           git remote add space \
-            https://dummy:${{ secrets.HF_TOKEN }}@huggingface.co/spaces/${{ vars.HF_SPACE_ID }}
+            https://dummy:${{ secrets.HUGGINGFACE_TOKEN }}@huggingface.co/spaces/${{ vars.HF_SPACE_ID }}
 
       - name: Force-push repository to HuggingFace Spaces
         run: |
           # Inject bearer token explicitly into HTTP headers — ensures the git
           # client never falls back to interactive prompts or password auth.
           git config http.https://huggingface.co/.extraheader \
-            "AUTHORIZATION: bearer ${{ secrets.HF_TOKEN }}"
+            "AUTHORIZATION: bearer ${{ secrets.HUGGINGFACE_TOKEN }}"
           git push --force space HEAD:main
           echo "::notice::Force-push to HF Space '${{ vars.HF_SPACE_ID }}' completed."
 
