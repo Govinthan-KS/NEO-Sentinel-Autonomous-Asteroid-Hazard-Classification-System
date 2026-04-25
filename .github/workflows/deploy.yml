@@ -50,12 +50,19 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
 
+      - name: Store HuggingFace credentials
+        run: |
+          # Write token to git credential store — HF git server accepts this
+          # as a proper API token, unlike the deprecated token-in-URL approach.
+          git config --global credential.helper store
+          echo "https://${{ vars.HF_USERNAME }}:${{ secrets.HF_TOKEN }}@huggingface.co" \
+            >> ~/.git-credentials
+
       - name: Add HuggingFace Spaces as git remote
         run: |
-          # HF_USERNAME and HF_SPACE_ID are GitHub repository variables — never hardcoded
-          # Format: HF_USERNAME = "KSG20"  |  HF_SPACE_ID = "KSG20/neo-sentinel"
+          # Clean HTTPS URL — credentials come from the git credential store above
           git remote add space \
-            https://${{ vars.HF_USERNAME }}:${{ secrets.HF_TOKEN }}@huggingface.co/spaces/${{ vars.HF_SPACE_ID }}
+            https://huggingface.co/spaces/${{ vars.HF_SPACE_ID }}
 
       - name: Force-push repository to HuggingFace Spaces
         run: |
