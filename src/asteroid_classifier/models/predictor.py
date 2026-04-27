@@ -15,16 +15,16 @@ class AsteroidPredictor:
 
     def _load_model(self):
         try:
-            repo_owner = os.getenv('DAGSHUB_REPO_OWNER', 'Govinthan-KS')
-            repo_name = os.getenv('DAGSHUB_REPO_NAME', 'Asteroid-Hazard-Classifier')
-            dagshub.init(repo_owner=repo_owner, repo_name=repo_name, mlflow=True)
-            
-            self.logger.info(f"Loading MLflow model from: {self.model_uri}")
+            # DagsHub auth is bootstrapped in main.py before this is called.
+            # Calling dagshub.init() again here would reset state and risk
+            # triggering an interactive OAuth prompt in headless environments.
+            self.logger.info(f"[NEO-Sentinel] Loading MLflow model from: {self.model_uri}")
             self.model = mlflow.pyfunc.load_model(self.model_uri)
-            self.logger.info("Model loaded successfully.")
+            self.logger.info("[NEO-Sentinel] Model loaded successfully.")
         except Exception as e:
-            self.logger.error(f"Failed to load model from {self.model_uri}: {e}")
+            self.logger.error(f"[NEO-Sentinel] Failed to load model from {self.model_uri}: {e}")
             raise ModelNotLoadedError(str(e))
+
 
     def predict(self, features_dict: dict) -> Tuple[bool, float]:
         if self.model is None:

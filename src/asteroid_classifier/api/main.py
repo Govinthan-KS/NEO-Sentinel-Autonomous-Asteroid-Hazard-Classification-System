@@ -1,4 +1,7 @@
+import os
 import time
+import dagshub
+import mlflow
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -14,19 +17,69 @@ from asteroid_classifier.ui.gradio_app import build_ui
 
 logger = get_logger()
 
+
+def _bootstrap_dagshub() -> None:
+    """
+    Forces headless DagsHub/MLflow authentication from environment variables.
+
+    The DagsHub SDK reads DAGSHUB_USER_TOKEN for non-interactive auth.
+    We map DAGSHUB_TOKEN (the name used in HF Spaces secrets) to that var
+    before calling dagshub.init() so it never falls back to OAuth.
+
+    Raises RuntimeError immediately if any required secret is absent,
+    causing the container to fail fast with a clear message instead of
+    hanging indefinitely on an interactive prompt.
+    """
+    token      = os.getenv("DAGSHUB_TOKEN")
+    repo_owner = os.getenv("DAGSHUB_REPO_OWNER")
+    repo_name  = os.getenv("DAGSHUB_REPO_NAME")
+
+    missing = [
+        name for name, val in {
+            "DAGSHUB_TOKEN":      token,
+            "DAGSHUB_REPO_OWNER": repo_owner,
+            "DAGSHUB_REPO_NAME":  repo_name,
+        }.items() if not val
+    ]
+    if missing:
+        raise RuntimeError(
+            f"[NEO-Sentinel] Missing required environment variables for headless auth: "
+            f"{', '.join(missing)}. "
+            "Set these in HuggingFace Spaces → Settings → Repository Secrets."
+        )
+
+    # Map to the env var name the DagsHub SDK reads for non-interactive login
+    os.environ["DAGSHUB_USER_TOKEN"] = token
+    dagshub.init(repo_owner=repo_owner, repo_name=repo_name, mlflow=True)
+    logger.info("[NEO-Sentinel] DagsHub headless auth initialised successfully.")
+
+
+    # Confirm the tracking URI is set
+    tracking_uri = os.getenv("MLFLOW_TRACKING_URI")
+    if tracking_uri:
+        mlflow.set_tracking_uri(tracking_uri)
+        logger.info(f"[NEO-Sentinel] MLflow tracking URI: {tracking_uri}")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    logger.info("Initializing API Lifespan...")
+    logger.info("[NEO-Sentinel] Initializing API Lifespan...")
+
+    # ── Step 1: headless auth — must run before any MLflow/DagsHub call ──
+    _bootstrap_dagshub()
+
+    # ── Step 2: load champion model from registry ─────────────────────────
     cfg = get_config()
-    model_uri = cfg.get("api", {}).get("model", {}).get("registry_uri", "models:/asteroid-hazard-classifier@champion")
-    
-    logger.info(f"Connecting to MLflow Registry model: {model_uri}")
+    model_uri = cfg.get("api", {}).get("model", {}).get(
+        "registry_uri", "models:/asteroid-hazard-classifier@champion"
+    )
+    logger.info(f"[NEO-Sentinel] Loading model from registry: {model_uri}")
     app.state.predictor = AsteroidPredictor(model_uri=model_uri)
-    logger.info("API is ready to accept traffic.")
+    logger.info("[NEO-Sentinel] API is ready to accept traffic.")
     yield
     # Shutdown
-    logger.info("Shutting down API...")
+    logger.info("[NEO-Sentinel] Shutting down API...")
 
 app = FastAPI(title="Asteroid Hazard Classifier", lifespan=lifespan)
 
