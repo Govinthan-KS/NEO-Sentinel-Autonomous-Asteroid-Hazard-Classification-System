@@ -21,15 +21,17 @@ logger = get_logger()
 def _bootstrap_dagshub() -> None:
     """
     Forces headless DagsHub/MLflow authentication from environment variables.
+    Must be called before any other MLflow or DagsHub operation.
 
-    The DagsHub SDK reads DAGSHUB_USER_TOKEN for non-interactive auth.
-    We map DAGSHUB_TOKEN (the name used in HF Spaces secrets) to that var
-    before calling dagshub.init() so it never falls back to OAuth.
+    DAGSHUB_NON_INTERACTIVE=1  — SDK-level kill-switch for OAuth flows.
+    DAGSHUB_USER_TOKEN         — primary bypass key read by the DagsHub SDK.
+    Both are set before dagshub.init() is called so no prompt is possible.
 
-    Raises RuntimeError immediately if any required secret is absent,
-    causing the container to fail fast with a clear message instead of
-    hanging indefinitely on an interactive prompt.
+    Raises RuntimeError immediately if any required secret is absent.
     """
+    # Kill-switch must be set FIRST — before any SDK import side-effects fire
+    os.environ["DAGSHUB_NON_INTERACTIVE"] = "1"
+
     token      = os.getenv("DAGSHUB_TOKEN")
     repo_owner = os.getenv("DAGSHUB_REPO_OWNER")
     repo_name  = os.getenv("DAGSHUB_REPO_NAME")
@@ -48,13 +50,17 @@ def _bootstrap_dagshub() -> None:
             "Set these in HuggingFace Spaces → Settings → Repository Secrets."
         )
 
-    # Map to the env var name the DagsHub SDK reads for non-interactive login
+    # Map to the env var the DagsHub SDK reads for non-interactive login
     os.environ["DAGSHUB_USER_TOKEN"] = token
-    dagshub.init(repo_owner=repo_owner, repo_name=repo_name, mlflow=True)
+
+    # Explicit strings — never rely on SDK auto-discovery in a headless env
+    dagshub.init(
+        repo_owner=str(repo_owner),
+        repo_name=str(repo_name),
+        mlflow=True,
+    )
     logger.info("[NEO-Sentinel] DagsHub headless auth initialised successfully.")
 
-
-    # Confirm the tracking URI is set
     tracking_uri = os.getenv("MLFLOW_TRACKING_URI")
     if tracking_uri:
         mlflow.set_tracking_uri(tracking_uri)
@@ -95,9 +101,13 @@ async def log_requests(request: Request, call_next):
     start_time = time.time()
     response = await call_next(request)
     process_time = time.time() - start_time
-    # Exclude internal gradio polling routes from cluttering INFO logs
-    if not request.url.path.startswith("/ui/") and not request.url.path.startswith("/info"):
-        logger.info(f"Request {request.method} {request.url.path} completed in {process_time:.4f}s with status {response.status_code}")
+    # Suppress Gradio's internal polling/queue paths to keep logs clean
+    _noisy = ("/queue", "/run", "/info", "/heartbeat", "/upload", "/theme.css")
+    if not any(request.url.path.startswith(p) for p in _noisy):
+        logger.info(
+            f"Request {request.method} {request.url.path} "
+            f"completed in {process_time:.4f}s → {response.status_code}"
+        )
     return response
 
 @app.exception_handler(Exception)
@@ -113,6 +123,12 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 app.include_router(router)
 
+
+@app.get("/health", tags=["ops"])
+async def health_check():
+    """Liveness probe for the HuggingFace Spaces load balancer."""
+    return {"status": "ok", "service": "NEO-Sentinel"}
+
 class PredictorWrapper:
     """Wrapper to dynamically access the loaded predictor from app state within Gradio."""
     def predict(self, features):
@@ -121,5 +137,8 @@ class PredictorWrapper:
 wrapper = PredictorWrapper()
 demo = build_ui(wrapper)
 
-# Mount Gradio app at the /ui path natively
-app = gr.mount_gradio_app(app, demo, path="/ui")
+# Mount Gradio at root / so HF Spaces load balancer finds the UI on port 7860.
+# FastAPI's own routes (/health, /predict, etc.) are matched first;
+# unmatched paths fall through to Gradio.
+app = gr.mount_gradio_app(app, demo, path="/")
+

@@ -43,6 +43,9 @@ streamlit run /app/src/asteroid_classifier/ui/dashboard.py \
     --server.port 8501 \
     --server.headless true \
     --server.address 0.0.0.0 &
+STREAMLIT_PID=$!
+echo "[NEO-Sentinel] Streamlit Admin Dashboard started in background (PID: ${STREAMLIT_PID}, port: 8501)."
+echo "[NEO-Sentinel] Note: port 8501 is not externally accessible in HuggingFace Spaces; monitor via this log."
 
 # ---------------------------------------------------------------------------
 # Primary Server — Uvicorn (ASGI)
