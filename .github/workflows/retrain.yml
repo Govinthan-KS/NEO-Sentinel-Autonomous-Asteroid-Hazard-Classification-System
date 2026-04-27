@@ -1,71 +1,179 @@
 # ============================================================
-# retrain.yml — Scheduled Retraining Workflow (Phase 9 Stub)
+# retrain.yml — Battle Royale Scheduled Retraining Pipeline
 # ============================================================
-# STATUS: STUB — Full implementation is a Phase 9 deliverable.
-#
 # Triggers:
-#   - schedule (cron)    → 2 AM UTC daily — pulls latest NASA data and retrains
-#   - workflow_dispatch  → manual trigger from GitHub Actions UI
-#   - workflow_call      → called by other workflows (e.g. drift alert from Phase 8)
+#   - schedule (cron)    → Daily at 13:00 IST (07:30 UTC) — adjust as needed
+#   - workflow_dispatch  → Manual trigger from GitHub Actions UI
+#   - workflow_call      → Called by drift monitoring (Phase 8)
 #
-# Phase 9 will fill in:
-#   [PHASE 9] DVC pull from DagsHub to get the latest validated dataset
-#   [PHASE 9] Run the Airflow training DAG (or invoke trainer.py directly)
-#   [PHASE 9] Evaluate against promotion thresholds (recall, F1, ROC-AUC)
-#   [PHASE 9] Promote model to @champion alias in MLflow registry if thresholds met
-#   [PHASE 9] Trigger deploy.yml via workflow_call on successful promotion
+# Pipeline:
+#   1. Ingest     — fetch latest 30-day NASA NeoWs data
+#   2. Train      — run multi-model Battle Royale benchmarking loop
+#   3. Detect     — compare @champion run_id before vs after training
+#   4. Promote    — trainer.py handles promotion automatically
+#   5. Redeploy   — call deploy.yml only when a new champion is promoted
 #
-# Secrets that Phase 9 will need (set in GitHub Secrets):
-#   - NASA_API_KEY, DAGSHUB_TOKEN, MLFLOW_TRACKING_URI,
-#     DAGSHUB_REPO_OWNER, DAGSHUB_REPO_NAME, HUGGINGFACE_TOKEN
+# Secrets required (GitHub Secrets):
+#   - NASA_API_KEY, DAGSHUB_TOKEN, MLFLOW_TRACKING_URI, HUGGINGFACE_TOKEN
+#
+# Repository variables required (GitHub Actions → Variables):
+#   - DAGSHUB_REPO_OWNER, DAGSHUB_REPO_NAME
 # ============================================================
 
-name: Scheduled Retraining Pipeline
+name: "Battle Royale \U0001f3c6 Scheduled Retraining Pipeline"
 
 on:
   schedule:
-    # Runs daily at 02:00 UTC
-    - cron: "0 2 * * *"
+    # 07:30 UTC = 13:00 IST — change minute/hour to suit your preference
+    - cron: "30 7 * * *"
 
   workflow_dispatch:
     # Manual trigger from GitHub Actions UI for on-demand retraining
 
   workflow_call:
-    # Hook point: called by drift monitoring (Phase 8) when drift threshold is exceeded
-    # Full cross-workflow integration implemented in Phase 9
+    # Hook point: called by drift monitoring (Phase 8) when drift is detected
+
 
 jobs:
-  retrain:
-    name: Retraining pipeline (Phase 9 stub)
+  # ──────────────────────────────────────────────────────────────────────────
+  # Job 1 — Ingest, Train, Benchmark, Promote
+  # ──────────────────────────────────────────────────────────────────────────
+  retrain-and-benchmark:
+    name: "Ingest \u2192 Train \u2192 Benchmark \u2192 Promote"
     runs-on: ubuntu-latest
+
+    # Expose the promotion result to Job 2
+    outputs:
+      champion_promoted: ${{ steps.detect-promotion.outputs.champion_promoted }}
+      champion_run_id:   ${{ steps.detect-promotion.outputs.champion_run_id }}
+
+    env:
+      # ── Headless auth — set at job level so every step inherits them ──
+      DAGSHUB_NON_INTERACTIVE: "1"
+      DAGSHUB_USER_TOKEN:      ${{ secrets.DAGSHUB_TOKEN }}
+      DAGSHUB_TOKEN:           ${{ secrets.DAGSHUB_TOKEN }}
+      DAGSHUB_REPO_OWNER:      ${{ vars.DAGSHUB_REPO_OWNER }}
+      DAGSHUB_REPO_NAME:       ${{ vars.DAGSHUB_REPO_NAME }}
+      MLFLOW_TRACKING_URI:     ${{ secrets.MLFLOW_TRACKING_URI }}
+      NASA_API_KEY:            ${{ secrets.NASA_API_KEY }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # [PHASE 9] Set up Python 3.12 and install Poetry + all dependencies
-      # [PHASE 9] steps: actions/setup-python@v5, pip install poetry, poetry install
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
 
-      # [PHASE 9] Pull latest validated dataset from DagsHub via DVC
-      # [PHASE 9] step: dvc pull data/validated/ --remote dagshub
+      - name: Cache Poetry virtualenv
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pypoetry
+          key: ${{ runner.os }}-poetry-${{ hashFiles('poetry.lock') }}
+          restore-keys: ${{ runner.os }}-poetry-
 
-      # [PHASE 9] Run ingestion DAG to fetch today's NASA NeoWs data
-      # [PHASE 9] step: poetry run python -m asteroid_classifier.data.ingestion
-
-      # [PHASE 9] Run training pipeline against the new dataset
-      # [PHASE 9] step: poetry run python -m asteroid_classifier.models.trainer
-
-      # [PHASE 9] Evaluate candidate model — check recall, F1, ROC-AUC thresholds
-      # [PHASE 9] step: poetry run python -m asteroid_classifier.models.evaluator
-
-      # [PHASE 9] Promote to @champion alias in MLflow registry if all thresholds met
-      # [PHASE 9] step: poetry run python -m asteroid_classifier.models.registry --promote
-
-      # [PHASE 9] On successful promotion, trigger deploy.yml to redeploy HF Space
-      # [PHASE 9] step: uses: ./.github/workflows/deploy.yml (workflow_call)
-
-      - name: Retraining pipeline placeholder
+      - name: Install Poetry and project dependencies
         run: |
-          echo "Retraining pipeline not yet implemented — Phase 9 deliverable"
-          echo "This stub confirms triggers (schedule, workflow_dispatch, workflow_call) are wired correctly."
-          echo "Triggered by: ${{ github.event_name }}"
+          pip install --quiet "poetry>=1.8.0,<3.0.0"
+          poetry install --no-interaction --no-ansi --only main
+
+      # ── Snapshot @champion BEFORE training ────────────────────────────────
+      - name: Record pre-training @champion run_id
+        id: pre-champion
+        run: |
+          CHAMPION_BEFORE=$(python - <<'PYEOF'
+          import os, sys
+          os.environ["DAGSHUB_NON_INTERACTIVE"] = "1"
+          os.environ["DAGSHUB_USER_TOKEN"] = os.environ.get("DAGSHUB_TOKEN", "")
+          import dagshub, mlflow
+          dagshub.init(
+              repo_owner=os.environ["DAGSHUB_REPO_OWNER"],
+              repo_name=os.environ["DAGSHUB_REPO_NAME"],
+              mlflow=True,
+          )
+          client = mlflow.tracking.MlflowClient()
+          try:
+              mv = client.get_model_version_by_alias(
+                  "asteroid-hazard-classifier", "champion"
+              )
+              print(mv.run_id)
+          except Exception:
+              print("none")
+          PYEOF
+          )
+          echo "run_id=${CHAMPION_BEFORE}" >> "$GITHUB_OUTPUT"
+          echo "[NEO-Sentinel] Pre-training @champion: ${CHAMPION_BEFORE}"
+
+      # ── Step 1: Ingest ────────────────────────────────────────────────────
+      - name: "Step 1 \u2014 Ingest latest NASA NeoWs data (30-day window)"
+        run: |
+          echo "[NEO-Sentinel] Starting NASA NeoWs ingestion..."
+          poetry run python -m asteroid_classifier.data.ingestion
+          echo "[NEO-Sentinel] Ingestion complete."
+
+      # ── Step 2: Train + Benchmark + Promote (all in trainer.py) ──────────
+      - name: "Step 2 \u2014 Multi-model Battle Royale benchmarking"
+        run: |
+          echo "[NEO-Sentinel] Starting multi-model benchmarking pipeline..."
+          poetry run python -m asteroid_classifier.models.trainer
+          echo "[NEO-Sentinel] Benchmarking complete."
+
+      # ── Snapshot @champion AFTER training and compare ─────────────────────
+      - name: Detect if @champion was promoted
+        id: detect-promotion
+        run: |
+          CHAMPION_AFTER=$(python - <<'PYEOF'
+          import os, sys
+          os.environ["DAGSHUB_NON_INTERACTIVE"] = "1"
+          os.environ["DAGSHUB_USER_TOKEN"] = os.environ.get("DAGSHUB_TOKEN", "")
+          import dagshub, mlflow
+          dagshub.init(
+              repo_owner=os.environ["DAGSHUB_REPO_OWNER"],
+              repo_name=os.environ["DAGSHUB_REPO_NAME"],
+              mlflow=True,
+          )
+          client = mlflow.tracking.MlflowClient()
+          try:
+              mv = client.get_model_version_by_alias(
+                  "asteroid-hazard-classifier", "champion"
+              )
+              print(mv.run_id)
+          except Exception:
+              print("none")
+          PYEOF
+          )
+          echo "[NEO-Sentinel] Post-training @champion: ${CHAMPION_AFTER}"
+          echo "champion_run_id=${CHAMPION_AFTER}" >> "$GITHUB_OUTPUT"
+
+          if [ "${CHAMPION_AFTER}" != "${{ steps.pre-champion.outputs.run_id }}" ]; then
+            echo "champion_promoted=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::NEO-Sentinel \U0001f3c6 New @champion promoted (${CHAMPION_AFTER}). Triggering redeployment."
+          else
+            echo "champion_promoted=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::NEO-Sentinel \u2139\ufe0f  @champion unchanged (${CHAMPION_AFTER}). Skipping redeployment."
+          fi
+
+      - name: Pipeline summary
+        run: |
+          echo "=================================================="
+          echo "  NEO-Sentinel Battle Royale — Summary"
+          echo "=================================================="
+          echo "  Date        : $(date -u '+%Y-%m-%d %H:%M UTC')"
+          echo "  Triggered by: ${{ github.event_name }}"
+          echo "  Champion    : ${{ steps.detect-promotion.outputs.champion_run_id }}"
+          echo "  Promoted    : ${{ steps.detect-promotion.outputs.champion_promoted }}"
+          echo "=================================================="
+
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # Job 2 — Redeploy (only runs when a new champion was promoted)
+  # ──────────────────────────────────────────────────────────────────────────
+  redeploy:
+    name: "Redeploy \u2192 HuggingFace Spaces"
+    needs: retrain-and-benchmark
+    if: needs.retrain-and-benchmark.outputs.champion_promoted == 'true'
+
+    # Reuse the entire deploy.yml workflow — inherits all secrets automatically
+    uses: ./.github/workflows/deploy.yml
+    secrets: inherit

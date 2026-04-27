@@ -1,7 +1,17 @@
 import os
+
+# ── Headless auth kill-switch — must be set BEFORE any DagsHub/MLflow import ──
+# The SDK checks these at import time; setting them here prevents OAuth from
+# ever being attempted in the headless container environment.
+os.environ["DAGSHUB_NON_INTERACTIVE"] = "1"
+_hf_token = os.environ.get("DAGSHUB_TOKEN", "")
+if _hf_token:
+    os.environ["DAGSHUB_USER_TOKEN"] = _hf_token
+
 import time
 import dagshub
 import mlflow
+
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
