@@ -23,9 +23,18 @@ Standards:
 """
 
 import os
+os.environ["DAGSHUB_NON_INTERACTIVE"] = "1"
+_hf_token = os.environ.get("DAGSHUB_TOKEN", "")
+if _hf_token:
+    os.environ["DAGSHUB_USER_TOKEN"] = _hf_token
+
 import time
+import json
+import subprocess
+import threading
 from pathlib import Path
 from typing import Optional
+import streamlit.components.v1 as components
 
 import dagshub
 import mlflow
@@ -328,6 +337,7 @@ st.markdown(
 # ---------------------------------------------------------------------------
 # MLflow / DagsHub initialisation
 # ---------------------------------------------------------------------------
+@st.cache_resource(show_spinner=False)
 def _init_mlflow() -> bool:
     """
     Initialise DagsHub + MLflow from environment variables.
@@ -345,9 +355,15 @@ def _init_mlflow() -> bool:
         return False
 
     try:
+        # Re-apply the auth override right before init, just like in main.py
+        os.environ["DAGSHUB_NON_INTERACTIVE"] = "1"
+        token = os.getenv("DAGSHUB_TOKEN")
+        if token:
+            os.environ["DAGSHUB_USER_TOKEN"] = token
+            
         dagshub.init(repo_owner=repo_owner, repo_name=repo_name, mlflow=True)
         mlflow.set_tracking_uri(tracking_uri)
-        logger.info(f"Dashboard: MLflow initialised — tracking URI: {tracking_uri}")
+        logger.info("Dashboard: MLflow initialised.")
         return True
     except Exception as exc:
         logger.error(f"Dashboard: DagsHub/MLflow init failed: {exc}")
@@ -436,11 +452,7 @@ def fetch_leaderboard_runs(max_runs: int = 15) -> list:
             precision = m.get("test_precision",  m.get("precision"))
             f1        = m.get("test_f1",         m.get("f1"))
             roc_auc   = m.get("test_roc_auc",   m.get("roc_auc"))
-            display_name = (
-                p.get("display_name")
-                or run.data.tags.get("display_name")
-                or run.info.run_name
-            )
+            display_name = run.info.run_name
             ts = run.info.start_time
             run_date = (
                 __import__("datetime").datetime

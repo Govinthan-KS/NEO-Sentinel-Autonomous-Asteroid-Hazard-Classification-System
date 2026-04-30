@@ -22,6 +22,7 @@ logger.add(
     level="DEBUG",
     rotation="50 MB",
     retention="10 days",
+    enqueue=True,
 )
 
 # ---------------------------------------------------------------------------
@@ -36,6 +37,7 @@ logger.add(
     level="INFO",
     rotation="10 MB",
     retention="3 days",
+    enqueue=True,
 )
 
 

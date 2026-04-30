@@ -29,8 +29,13 @@ on:
     # Manual trigger from GitHub Actions UI for ad-hoc redeployments
 
   workflow_call:
-    # Future hook: called by retrain.yml on successful champion model promotion
-    # Full integration implemented in Phase 9
+    # Called by retrain.yml when a new @champion is promoted — triggers redeploy to HuggingFace Spaces
+
+# contents: write   → required for git push to HuggingFace remote
+# actions: read     → allows workflow_call from retrain.yml
+permissions:
+  contents: write
+  actions: read
 
 jobs:
   deploy-to-hf-spaces:

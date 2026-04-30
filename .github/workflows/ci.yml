@@ -24,6 +24,11 @@ on:
     branches:
       - develop
 
+# Minimal permissions: read-only checkout is all CI needs.
+# Write access is intentionally withheld to prevent supply-chain attacks.
+permissions:
+  contents: read
+
 jobs:
   lint-and-test:
     name: Run linters, type checker, and test suite
@@ -80,5 +85,5 @@ jobs:
       - name: Run pytest test suite
         run: |
           echo "--- pytest: running test suite ---"
-          poetry run pytest tests/ -v --tb=short
+          poetry run pytest tests/ -v --tb=long
           echo "All tests passed."

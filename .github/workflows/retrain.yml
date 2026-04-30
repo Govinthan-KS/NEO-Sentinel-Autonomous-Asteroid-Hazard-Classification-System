@@ -2,9 +2,8 @@
 # retrain.yml — Battle Royale Scheduled Retraining Pipeline
 # ============================================================
 # Triggers:
-#   - schedule (cron)    → Daily at 13:00 IST (07:30 UTC) — adjust as needed
-#   - workflow_dispatch  → Manual trigger from GitHub Actions UI
-#   - workflow_call      → Called by drift monitoring (Phase 8)
+#   - schedule (cron)    → Daily at 13:00 IST (07:30 UTC)
+#   - workflow_dispatch  → Manual via GitHub Actions UI or Discord !retrain
 #
 # Pipeline:
 #   1. Ingest     — fetch latest 30-day NASA NeoWs data
@@ -20,18 +19,25 @@
 #   - DAGSHUB_REPO_OWNER, DAGSHUB_REPO_NAME
 # ============================================================
 
-name: "Battle Royale \U0001f3c6 Scheduled Retraining Pipeline"
+name: "Battle Royale 🏆 Scheduled Retraining Pipeline"
 
 on:
   schedule:
-    # 07:30 UTC = 13:00 IST — change minute/hour to suit your preference
+    # 07:30 UTC = 13:00 IST
     - cron: "30 7 * * *"
 
   workflow_dispatch:
-    # Manual trigger from GitHub Actions UI for on-demand retraining
+    # Manual trigger: GitHub Actions UI  OR  Discord !retrain command
+    # The Discord bot sends a POST to /repos/{owner}/{repo}/actions/workflows/retrain.yml/dispatches
+    # with Authorization: token $GITHUB_TOKEN — ensure GITHUB_TOKEN has 'actions: write' scope.
 
-  workflow_call:
-    # Hook point: called by drift monitoring (Phase 8) when drift is detected
+# ── Permissions ─────────────────────────────────────────────────────────────
+# 'actions: write'  → required for workflow_dispatch (Discord !retrain)
+#                     and for calling reusable workflows (deploy.yml)
+# 'contents: read'  → checkout
+permissions:
+  actions: write
+  contents: read
 
 
 jobs:
@@ -111,6 +117,16 @@ jobs:
           echo "[NEO-Sentinel] Starting NASA NeoWs ingestion..."
           poetry run python -m asteroid_classifier.data.ingestion
           echo "[NEO-Sentinel] Ingestion complete."
+
+      # ── Step 1.5: Validate ───────────────────────────────────────────────
+      # Hard gate — if ANY Great Expectations rule fails the step exits non-zero,
+      # the job fails immediately, and training NEVER starts.
+      # The module auto-discovers the ingested CSV from Hydra config (no hardcoding).
+      - name: "Step 1.5 \u2014 Validate ingested data (Great Expectations)"
+        run: |
+          echo "[NEO-Sentinel] Running Great Expectations validation suite..."
+          poetry run python -m asteroid_classifier.data.validation
+          echo "[NEO-Sentinel] Validation gate passed — proceeding to training."
 
       # ── Step 2: Train + Benchmark + Promote (all in trainer.py) ──────────
       - name: "Step 2 \u2014 Multi-model Battle Royale benchmarking"

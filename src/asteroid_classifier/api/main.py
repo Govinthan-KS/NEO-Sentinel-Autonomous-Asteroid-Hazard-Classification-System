@@ -16,14 +16,24 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-import gradio as gr
 
+# ── FIX FOR MULTIPART NAMESPACE COLLISION ──
+import sys
+try:
+    import python_multipart.multipart
+    sys.modules["multipart.multipart"] = python_multipart.multipart
+except ImportError:
+    pass
+
+import gradio as gr
 from asteroid_classifier.api.routes import router
 from asteroid_classifier.core.logging import get_logger
 from asteroid_classifier.core.config import get_config
 from asteroid_classifier.models.predictor import AsteroidPredictor
 from asteroid_classifier.core.exceptions import AsteroidPipelineError
 from asteroid_classifier.ui.gradio_app import build_ui
+from asteroid_classifier.utils.notifications import notify_health_issue
+from asteroid_classifier.monitoring.logger import initialize_parquet_schema
 
 logger = get_logger()
 
@@ -74,16 +84,24 @@ def _bootstrap_dagshub() -> None:
     tracking_uri = os.getenv("MLFLOW_TRACKING_URI")
     if tracking_uri:
         mlflow.set_tracking_uri(tracking_uri)
-        logger.info(f"[NEO-Sentinel] MLflow tracking URI: {tracking_uri}")
+        logger.info("[NEO-Sentinel] MLflow tracking URI configured.")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup
     logger.info("[NEO-Sentinel] Initializing API Lifespan...")
+
+    webhook = os.getenv("DISCORD_WEBHOOK_URL", "")
+    if not webhook:
+        logger.critical("[NEO-Sentinel] DISCORD_WEBHOOK_URL is empty!")
+    else:
+        logger.info("[NEO-Sentinel] Discord webhook loaded successfully.")
 
     # ── Step 1: headless auth — must run before any MLflow/DagsHub call ──
     _bootstrap_dagshub()
+
+    # ── Step 1.5: Parquet Schema Initialization ──
+    initialize_parquet_schema()
 
     # ── Step 2: load champion model from registry ─────────────────────────
     cfg = get_config()
@@ -126,6 +144,9 @@ async def global_exception_handler(request: Request, exc: Exception):
     status_code = 500
     if isinstance(exc, AsteroidPipelineError):
         status_code = 400
+    else:
+        notify_health_issue(type(exc).__name__, str(exc))
+        
     return JSONResponse(
         status_code=status_code,
         content={"error": type(exc).__name__, "message": str(exc)}
