@@ -49,7 +49,7 @@ jobs:
 
     steps:
       - name: Checkout repository with LFS support
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0   # full history required for a clean force-push
           lfs: true        # fetch any Git LFS objects (DVC metadata, binary assets)
