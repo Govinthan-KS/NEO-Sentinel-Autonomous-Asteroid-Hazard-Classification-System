@@ -61,6 +61,8 @@ jobs:
       DAGSHUB_REPO_OWNER:      ${{ vars.DAGSHUB_REPO_OWNER }}
       DAGSHUB_REPO_NAME:       ${{ vars.DAGSHUB_REPO_NAME }}
       MLFLOW_TRACKING_URI:     ${{ secrets.MLFLOW_TRACKING_URI }}
+      MLFLOW_TRACKING_USERNAME: ${{ vars.DAGSHUB_REPO_OWNER }}
+      MLFLOW_TRACKING_PASSWORD: ${{ secrets.DAGSHUB_TOKEN }}
       NASA_API_KEY:            ${{ secrets.NASA_API_KEY }}
 
     steps:
@@ -89,15 +91,8 @@ jobs:
         id: pre-champion
         run: |
           CHAMPION_BEFORE=$(poetry run python - <<'PYEOF'
-          import os, sys
-          os.environ["DAGSHUB_NON_INTERACTIVE"] = "1"
-          os.environ["DAGSHUB_USER_TOKEN"] = os.environ.get("DAGSHUB_TOKEN", "")
-          import dagshub, mlflow
-          dagshub.init(
-              repo_owner=os.environ["DAGSHUB_REPO_OWNER"],
-              repo_name=os.environ["DAGSHUB_REPO_NAME"],
-              mlflow=True,
-          )
+          import os, mlflow
+          mlflow.set_tracking_uri(os.environ["MLFLOW_TRACKING_URI"])
           client = mlflow.tracking.MlflowClient()
           try:
               mv = client.get_model_version_by_alias(
@@ -152,15 +147,8 @@ jobs:
         id: detect-promotion
         run: |
           CHAMPION_AFTER=$(poetry run python - <<'PYEOF'
-          import os, sys
-          os.environ["DAGSHUB_NON_INTERACTIVE"] = "1"
-          os.environ["DAGSHUB_USER_TOKEN"] = os.environ.get("DAGSHUB_TOKEN", "")
-          import dagshub, mlflow
-          dagshub.init(
-              repo_owner=os.environ["DAGSHUB_REPO_OWNER"],
-              repo_name=os.environ["DAGSHUB_REPO_NAME"],
-              mlflow=True,
-          )
+          import os, mlflow
+          mlflow.set_tracking_uri(os.environ["MLFLOW_TRACKING_URI"])
           client = mlflow.tracking.MlflowClient()
           try:
               mv = client.get_model_version_by_alias(
