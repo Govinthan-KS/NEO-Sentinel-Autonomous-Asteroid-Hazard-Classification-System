@@ -64,6 +64,7 @@ jobs:
       MLFLOW_TRACKING_USERNAME: ${{ vars.DAGSHUB_REPO_OWNER }}
       MLFLOW_TRACKING_PASSWORD: ${{ secrets.DAGSHUB_TOKEN }}
       NASA_API_KEY:            ${{ secrets.NASA_API_KEY }}
+      PYTHONPATH:              src
 
     steps:
       - name: Checkout repository
