@@ -128,6 +128,18 @@ jobs:
           poetry run python -m asteroid_classifier.data.validation
           echo "[NEO-Sentinel] Validation gate passed — proceeding to training."
 
+      # ── Step 1.75: Version dataset with DVC ──────────────────────────────
+      # Non-blocking by design: versioning.py always exits 0.
+      # continue-on-error: true is a second safeguard in case of unexpected
+      # runner-level failures (OOM, DVC binary missing, etc.).
+      # Training is NEVER halted by a DVC push failure.
+      - name: "Step 1.75 \u2014 Version dataset with DVC (non-blocking)"
+        continue-on-error: true
+        run: |
+          echo "[NEO-Sentinel] Versioning dataset with DVC and pushing to DagsHub..."
+          poetry run python -m asteroid_classifier.data.versioning
+          echo "[NEO-Sentinel] DVC versioning step complete."
+
       # ── Step 2: Train + Benchmark + Promote (all in trainer.py) ──────────
       - name: "Step 2 \u2014 Multi-model Battle Royale benchmarking"
         run: |

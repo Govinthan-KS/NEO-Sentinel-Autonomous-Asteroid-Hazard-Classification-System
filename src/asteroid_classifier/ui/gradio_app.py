@@ -199,9 +199,9 @@ button.secondary:hover {
 # ---------------------------------------------------------------------------
 _BANNER_HTML = """
 <div class="neo-banner">
-    <h1>☄️ NEO-Sentinel: Prediction Portal</h1>
+    <h1>☄️ NEO-Sentinel: Classification Portal</h1>
     <p>Enter asteroid telemetry data to classify its threat level in real time &nbsp;·&nbsp;
-    Powered by XGBoost · @champion model via MLflow Registry</p>
+    Powered by XGBoost|RandomForest|LightGBM · @champion model via MLflow Registry</p>
 </div>
 """
 
@@ -219,7 +219,7 @@ _FOOTER_HTML = """
 <div class="sea-hr"></div>
 <div class="neo-footer">
     NEO-Sentinel &nbsp;·&nbsp; Autonomous Asteroid Hazard Classification System &nbsp;·&nbsp;
-    XGBoost · MLflow · DagsHub · FastAPI
+    XGBoost|RandomForest|LightGBM · MLflow · DagsHub · FastAPI
 </div>
 """
 
@@ -248,7 +248,7 @@ def build_ui(predictor):
                 card_class = "result-safe"
             return (
                 f'<div class="result-card {card_class}">'
-                f"<h3>Prediction Result</h3>"
+                f"<h3>Result</h3>"
                 f"<p><strong>Status:</strong> {result_str}</p>"
                 f"<p><strong>Confidence:</strong> {conf:.2%}</p>"
                 f"</div>"
@@ -281,7 +281,7 @@ def build_ui(predictor):
         return 20.0, 0.1, 0.2, 50000, 5000000, "Earth", ""
 
     with gr.Blocks(
-        title="NEO-Sentinel: Prediction Portal",
+        title="NEO-Sentinel: Classification Portal",
         theme=gr.themes.Base(),
         css=OCEAN_CSS,
     ) as demo:
@@ -304,7 +304,7 @@ def build_ui(predictor):
             ">
                 ℹ️ &nbsp;<strong style="color:#a8d8ea;">Note:</strong>
                 The Admin Dashboard link is available in local Docker deployments.
-                In public Hugging Face Spaces, this port (8501) is restricted for security.
+                In public Hugging Face Spaces, the admin dashboard port is restricted for security.
             </div>
             """
         )
@@ -341,7 +341,7 @@ def build_ui(predictor):
 
         # ── Action buttons ──
         with gr.Row():
-            btn = gr.Button("⚡ Classify Threat", variant="primary", elem_id="predict-btn")
+            btn = gr.Button("Classify Threat", variant="primary", elem_id="predict-btn")
             reset_btn = gr.Button("↺ Reset", variant="secondary")
 
         # ── Result output ──
@@ -364,3 +364,26 @@ def build_ui(predictor):
         gr.HTML(_FOOTER_HTML)
 
     return demo
+
+
+# ---------------------------------------------------------------------------
+# Standalone launch — UI preview without MLflow / DagsHub connection
+# Usage:  $env:PYTHONPATH="src"; poetry run python -m asteroid_classifier.ui.gradio_app
+# ---------------------------------------------------------------------------
+if __name__ == "__main__":
+    import random
+
+    class _StubPredictor:
+        """Returns randomised dummy predictions so every UI element is exercisable."""
+        def predict(self, features: dict):
+            is_hazardous = random.random() > 0.5
+            confidence   = round(random.uniform(0.55, 0.99), 4)
+            return is_hazardous, confidence
+
+    demo = build_ui(_StubPredictor())
+    demo.launch(
+        server_name="0.0.0.0",
+        server_port=7860,
+        share=False,          # set share=True for a temporary public URL
+        show_error=True,
+    )
