@@ -20,6 +20,11 @@
 
 name: Deploy to HuggingFace Spaces
 
+# Opt into Node.js 24 for all actions (checkout, cache, setup-python).
+# Required before June 2nd 2026 when Node.js 20 is removed from runners.
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 on:
   push:
     branches:
