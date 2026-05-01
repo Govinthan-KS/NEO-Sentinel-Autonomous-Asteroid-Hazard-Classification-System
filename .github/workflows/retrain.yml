@@ -32,12 +32,12 @@ on:
     # with Authorization: token $GITHUB_TOKEN — ensure GITHUB_TOKEN has 'actions: write' scope.
 
 # ── Permissions ─────────────────────────────────────────────────────────────
-# 'actions: write'  → required for workflow_dispatch (Discord !retrain)
-#                     and for calling reusable workflows (deploy.yml)
-# 'contents: read'  → checkout
+# 'actions: write'   → required for workflow_dispatch and calling deploy.yml
+# 'contents: write'  → required by deploy.yml (git push to HF remote) when
+#                      called via workflow_call — caller permissions cap the callee
 permissions:
   actions: write
-  contents: read
+  contents: write
 
 
 jobs:
