@@ -16,41 +16,78 @@ license: mit
 [![Python 3.12](https://img.shields.io/badge/Python-3.12-blue?logo=python)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-green?logo=fastapi)](https://fastapi.tiangolo.com)
 [![XGBoost](https://img.shields.io/badge/XGBoost-2.x-orange)](https://xgboost.readthedocs.io)
-[![MLflow](https://img.shields.io/badge/MLflow-DagsHub-blue)](https://dagshub.com)
+[![MLflow on DagsHub](https://img.shields.io/badge/MLflow-DagsHub-blue)](https://dagshub.com/Govinthan-KS/Asteroid-Hazard-Classifier)
 [![Docker](https://img.shields.io/badge/Docker-HF%20Spaces-2496ED?logo=docker)](https://huggingface.co)
+[![GitHub Actions](https://img.shields.io/badge/CI%2FCD-GitHub%20Actions-2088FF?logo=githubactions)](https://github.com/Govinthan-KS/Asteroid-Hazard-Classifier/actions)
 
 ---
 
-## Project Overview
+## What This System Does
 
-NEO-Sentinel: Autonomous Asteroid Hazard Classification System ingests Near-Earth Object (NEO) data from NASA's NeoWs API, trains a **high-recall binary classifier** to predict whether an asteroid is potentially hazardous, and serves predictions via a REST API and interactive Gradio UI — all in a single production-grade Docker container deployed to HuggingFace Spaces.
+NEO-Sentinel ingests Near-Earth Object (NEO) telemetry from NASA's NeoWs API on a daily schedule, validates the incoming data, trains a multi-model ensemble, promotes the best-performing model to a live production alias, and serves predictions via a REST API and interactive UI — all inside a single Docker container on HuggingFace Spaces with zero manual intervention.
 
-**Core ML Constraint:** The model is not promoted to production unless all three thresholds are met:
+**The ML design constraint:** Recall is the primary optimization objective. A missed hazardous asteroid is catastrophically worse than a false alarm. The system only promotes a model to production when all three thresholds are simultaneously satisfied:
 
-| Metric | Minimum Threshold | Rationale |
-|--------|------------------|-----------|
-| **Recall** | ≥ 0.90 | A missed hazardous asteroid is catastrophically worse than a false alarm |
-| **F1 Score** | ≥ 0.85 | Balance precision with high recall |
-| **ROC-AUC** | ≥ 0.92 | Full discriminability across classification thresholds |
+| Metric | Production Threshold | Rationale |
+|--------|---------------------|-----------|
+| **Recall** | ≥ 0.90 | Must not miss hazardous objects |
+| **F1 Score** | ≥ 0.85 | Balances precision with high recall |
+| **ROC-AUC** | ≥ 0.92 | Full discriminability across all thresholds |
 
-The system prioritises **recall over precision** — the engineering equivalent of "never miss a real threat."
+> **Note:** Thresholds are temporarily relaxed for sparse 30-day rolling datasets (≤ 300 hazardous samples). Production targets above are restored when data volume scales. See `configs/training/training.yaml`.
 
 ---
 
-## Model Lineage
+## System Architecture
 
-The serving layer **dynamically pulls the `@champion` model alias** from the DagsHub MLflow Model Registry at every container cold start. No model artifact is baked into the image.
+```mermaid
+flowchart TD
+    A([NASA NeoWs API]) -->|Daily pull| B[Data Ingestion\ningestion.py]
+    B -->|Raw CSV| C{Data Validation\nGreat Expectations}
+    C -->|❌ Fail| D([Pipeline halts\nERROR logged])
+    C -->|✅ Pass| E[DVC Versioning\nPush to DagsHub]
+    E -->|Content hash| F[Multi-Model Training\ntrainer.py]
+
+    F --> G[LightGBM]
+    F --> H[Random Forest]
+    F --> I[XGBoost]
+
+    G & H & I -->|Metrics| J{Champion Selection\nRecall → F1 tie-breaker}
+    J -->|Below threshold| K([Run logged\nNo promotion])
+    J -->|Best model passes| L[MLflow Model Registry\nDagsHub]
+
+    L -->|@champion alias| M[FastAPI + Uvicorn\nPort 7860]
+    M --> N[Gradio UI\n/ui]
+    M --> O[REST API\n/predict]
+    M --> P[Streamlit Dashboard\nPort 8501]
+
+    Q([GitHub Actions\nDaily Cron / Manual]) -->|Triggers| B
+    L -->|New champion?| R{Deploy?}
+    R -->|Yes| S[deploy.yml\nHF Spaces push]
+    R -->|No| T([Container restart\nnot needed])
+```
+
+---
+
+## Pipeline Flow
 
 ```
-DagsHub MLflow Registry
-└── asteroid-hazard-classifier
-    └── @champion  ←  loaded at runtime via mlflow.pyfunc.load_model()
+[1] DATA INGESTION     NASA NeoWs API → GitHub Actions → Raw CSV (30-day rolling window)
+        ↓
+[2] DATA VALIDATION    Great Expectations → Schema + physical range checks → hard gate
+        ↓
+[3] DATA VERSIONING    DVC add + push → DagsHub remote (content-hashed, reproducible)
+        ↓
+[4] MODEL TRAINING     LightGBM + Random Forest + XGBoost → MLflow on DagsHub
+        ↓
+[5] CHAMPION SELECTION Best recall model → precision guardrail → @champion alias
+        ↓
+[6] SERVING            FastAPI + Gradio → This HuggingFace Space  ← YOU ARE HERE
+        ↓
+[7] OBSERVABILITY      Loguru structured logs + Streamlit Admin Dashboard (port 8501)
+        ↓
+[8] CI/CD              GitHub Actions → daily cron retrain + conditional redeploy
 ```
-
-This means a newly promoted champion model automatically becomes live on the next container restart — **zero redeployment required for model updates.**
-
-Model name in registry: `asteroid-hazard-classifier`
-Registry URI: `models:/asteroid-hazard-classifier@champion`
 
 ---
 
@@ -58,19 +95,22 @@ Registry URI: `models:/asteroid-hazard-classifier@champion`
 
 | Layer | Technology | Role |
 |-------|-----------|------|
-| **ML Model** | XGBoost 2.x | Gradient-boosted binary classifier |
-| **Preprocessing** | Scikit-Learn | ColumnTransformer pipeline, SMOTE oversampling |
-| **Experiment Tracking** | MLflow on DagsHub | All runs, metrics, artifacts, and model registry |
-| **Data Versioning** | DVC → DagsHub | Every dataset version is content-hashed and reproducible |
+| **ML Models** | XGBoost, LightGBM, Random Forest | Multi-model benchmarking — best wins |
+| **Preprocessing** | Scikit-Learn | `ColumnTransformer` + Hybrid SMOTE oversampling |
+| **Experiment Tracking** | MLflow on DagsHub | Hyperparameters, metrics, artifacts, model registry |
+| **Data Versioning** | DVC → DagsHub | Content-hashed, fully reproducible dataset lineage |
+| **Data Validation** | Great Expectations | Physical + structural constraints, hard pipeline gate |
 | **REST API** | FastAPI + Uvicorn | `POST /predict` with Pydantic telemetry validation |
-| **Prediction UI** | Gradio 4.x | Interactive asteroid hazard query interface |
+| **Prediction UI** | Gradio | Interactive asteroid hazard query interface |
+| **Admin Dashboard** | Streamlit | Champion metrics, live log viewer |
 | **Config Management** | Hydra | Zero hardcoding — all values in `configs/*.yaml` |
 | **Observability** | Loguru | Structured logs at every pipeline stage |
-| **Container** | Docker (python:3.12-slim) | Single image, deployed to HuggingFace Spaces |
+| **CI/CD** | GitHub Actions | Daily scheduled retrain + conditional redeploy |
+| **Container** | Docker (python:3.12-slim) | Single image, HuggingFace Spaces |
 
 ---
 
-## API Endpoints
+## API Reference
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
@@ -80,7 +120,7 @@ Registry URI: `models:/asteroid-hazard-classifier@champion`
 | `/docs` | `GET` | FastAPI auto-generated Swagger UI |
 | `/redoc` | `GET` | FastAPI ReDoc documentation |
 
-### Example: Prediction Request
+### Prediction Request
 
 ```bash
 curl -X POST https://<your-space>.hf.space/predict \
@@ -104,11 +144,9 @@ curl -X POST https://<your-space>.hf.space/predict \
 }
 ```
 
----
+### Input Validation Constraints
 
-## Physical Telemetry Constraints
-
-All inputs are validated by Pydantic before reaching the model. Out-of-range values are rejected with a `422 Unprocessable Entity` error:
+All inputs are validated by Pydantic before reaching the model. Out-of-range values return `422 Unprocessable Entity`:
 
 | Feature | Valid Range | Unit |
 |---------|------------|------|
@@ -117,47 +155,77 @@ All inputs are validated by Pydantic before reaching the model. Out-of-range val
 | `estimated_diameter_max_km` | 0.0001 – 100 | km |
 | `relative_velocity_kmph` | 0 – 300,000 | km/h |
 | `miss_distance_km` | 0 – 100,000,000 | km |
-| `orbiting_body` | Earth only | — |
+| `orbiting_body` | `"Earth"` only | — |
+
+---
+
+## Model Lineage
+
+The serving layer **dynamically loads the `@champion` model alias** from the MLflow Model Registry at every container cold start. No model artifact is baked into the image.
+
+```
+DagsHub MLflow Registry
+└── asteroid-hazard-classifier
+    ├── v1  →  Archived
+    ├── v2  →  Archived
+    └── v3  →  @champion  ← loaded at runtime via mlflow.pyfunc.load_model()
+```
+
+**A newly promoted champion model becomes live on the next container restart — no redeployment or image rebuild required.**
+
+- Registry URI: `models:/asteroid-hazard-classifier@champion`
+- Experiment dashboard: [DagsHub MLflow](https://dagshub.com/Govinthan-KS/Asteroid-Hazard-Classifier.mlflow)
+
+Champion selection uses a strict 3-stage process on each training run:
+1. **Threshold gate** — all three metrics (recall, F1, ROC-AUC) must clear minimums
+2. **Precision guardrail** — eliminates pure "predict-always-hazardous" dummy models
+3. **Recall-primary sort** — highest recall wins; F1 is the tie-breaker; newer data wins exact ties
+
+---
+
+## CI/CD Pipeline
+
+Two GitHub Actions workflows run automatically:
+
+### `retrain.yml` — NEO-Sentinel Scheduled Retraining Pipeline
+- **Triggers:** Daily at 13:00 IST (07:30 UTC) + manual `workflow_dispatch`
+- **Steps:** Ingest → Validate → DVC Version → Train → Detect champion change → Conditional redeploy
+- **Manual trigger:** GitHub → Actions → *NEO-Sentinel Scheduled Retraining Pipeline* → **Run workflow**
+
+### `deploy.yml` — Deploy to HuggingFace Spaces
+- **Triggers:** Push to `main` (code changes) + called by `retrain.yml` when a new champion is promoted
+- **Action:** Force-pushes `HEAD:main` to the HuggingFace Spaces git remote
+
+**Secrets required in GitHub Repository Secrets:**
+
+| Secret | Purpose |
+|--------|---------|
+| `NASA_API_KEY` | NASA NeoWs API access |
+| `DAGSHUB_TOKEN` | DagsHub + MLflow authentication |
+| `MLFLOW_TRACKING_URI` | DagsHub MLflow server URL |
+| `HUGGINGFACE_TOKEN` | HuggingFace Spaces push access |
+
+**Variables required in GitHub Actions Variables:**
+
+| Variable | Value |
+|----------|-------|
+| `DAGSHUB_REPO_OWNER` | DagsHub username |
+| `DAGSHUB_REPO_NAME` | DagsHub repository name |
+| `HF_SPACE_ID` | `owner/space-name` format |
 
 ---
 
 ## Runtime Configuration
 
-All secrets are injected via **HuggingFace Spaces → Settings → Repository Secrets**. No credentials are baked into the image.
+All secrets are injected via **HuggingFace Spaces → Settings → Repository Secrets**. No credentials are baked into the image. The container validates all five required variables at startup and exits with a descriptive error if any are missing.
 
 | Variable | Purpose |
-|----------|---------|
+|----------|---------| 
 | `NASA_API_KEY` | NASA NeoWs API access |
 | `DAGSHUB_TOKEN` | DagsHub authentication for MLflow Registry |
 | `MLFLOW_TRACKING_URI` | DagsHub MLflow server URL |
 | `DAGSHUB_REPO_OWNER` | DagsHub repository owner |
 | `DAGSHUB_REPO_NAME` | DagsHub repository name |
-
-The container **validates all five variables at startup** and exits cleanly with a descriptive error if any are missing.
-
----
-
-## Full MLOps Pipeline
-
-```
-[1] DATA INGESTION     NASA NeoWs API → Daily Airflow DAG → Raw JSON
-        ↓
-[2] DATA VALIDATION    Great Expectations → Schema + range checks
-        ↓
-[3] DATA VERSIONING    DVC → DagsHub remote (content-hashed, reproducible)
-        ↓
-[4] MODEL TRAINING     XGBoost + SMOTE → MLflow tracking on DagsHub
-        ↓
-[5] MODEL PROMOTION    Recall ≥ 0.90, F1 ≥ 0.85, ROC-AUC ≥ 0.92 → @champion
-        ↓
-[6] SERVING            FastAPI + Gradio → This HuggingFace Space ← YOU ARE HERE
-        ↓
-[7] DRIFT MONITORING   Evidently AI → Weekly drift reports → Retrain trigger
-        ↓
-[8] OBSERVABILITY      Loguru + Streamlit Admin Dashboard
-        ↓
-[9] CI/CD              GitHub Actions → Auto retrain + redeploy on promotion
-```
 
 ---
 
@@ -165,26 +233,66 @@ The container **validates all five variables at startup** and exits cleanly with
 
 ```
 asteroid-hazard-classifier/
-├── configs/                    # Hydra YAML — zero hardcoding in source
-│   └── api/default.yaml        # Model registry URI, host, port
+├── .github/workflows/
+│   ├── retrain.yml              # Scheduled + manual retraining pipeline
+│   └── deploy.yml               # Deploy to HuggingFace Spaces
+├── configs/                     # Hydra YAML — zero hardcoding in source
+│   ├── config.yaml              # Root config, pulls in sub-configs
+│   ├── data/ingestion.yaml      # NASA API key, date window, output paths
+│   ├── training/training.yaml   # Promotion thresholds (recall, f1, roc_auc)
+│   ├── api/default.yaml         # Host, port, model registry URI
+│   └── models/                  # Per-model hyperparameter configs
+│       ├── lightgbm.yaml
+│       ├── random_forest.yaml
+│       └── xgboost.yaml
 ├── src/asteroid_classifier/
-│   ├── api/                    # FastAPI routes, schemas, main app
-│   ├── models/predictor.py     # MLflow @champion model loader
-│   ├── ui/gradio_app.py        # Gradio prediction interface
-│   └── core/                   # Loguru, Hydra config, exceptions
+│   ├── core/                    # Infrastructure layer
+│   │   ├── config.py            # Hydra config loader
+│   │   ├── logging.py           # Loguru setup — configured once, imported everywhere
+│   │   └── exceptions.py        # Custom exception hierarchy (AsteroidPipelineError)
+│   ├── data/                    # Data layer
+│   │   ├── ingestion.py         # NASA NeoWs API client
+│   │   ├── validation.py        # Great Expectations validation suite
+│   │   ├── preprocessing.py     # ColumnTransformer + SMOTE pipeline
+│   │   └── versioning.py        # DVC add + push (non-blocking)
+│   ├── models/                  # Model layer
+│   │   ├── trainer.py           # Multi-model benchmarking loop + champion selection
+│   │   ├── registry.py          # MLflow Model Registry operations
+│   │   └── predictor.py         # @champion model loader for serving
+│   ├── api/                     # Presentation layer — FastAPI
+│   │   ├── main.py              # Lifespan management, app factory
+│   │   ├── routes.py            # /predict, /health endpoints
+│   │   └── schemas.py           # Pydantic request/response models
+│   └── ui/                      # Presentation layer — Gradio + Streamlit
+│       ├── gradio_app.py        # Classification portal
+│       └── dashboard.py         # Admin observability dashboard
 ├── docker/
-│   ├── Dockerfile              # python:3.12-slim production image
-│   └── entrypoint.sh           # Secret validation + Uvicorn bootstrap
-└── pyproject.toml              # Poetry dependency manifest
+│   ├── Dockerfile               # python:3.12-slim production image
+│   └── entrypoint.sh            # Env validation + Streamlit + Uvicorn bootstrap
+├── tests/
+│   ├── unit/                    # Per-module unit tests
+│   └── conftest.py              # Shared pytest fixtures
+├── data/                        # DVC-tracked — gitignored
+├── pyproject.toml               # Poetry dependency manifest
+├── .env.example                 # Credential template — never commit .env
+└── phase_tracking.md            # Phase delivery log
 ```
 
 ---
 
-## 🛠️ Local Development
+## Local Development
 
-Run the full dual-service stack locally using a `secrets.env` file so credentials never appear in your shell history.
+Run the full serving stack locally:
 
-**1. Create `secrets.env`** in the project root (this file is gitignored):
+**1. Clone and install:**
+
+```bash
+git clone https://github.com/Govinthan-KS/Asteroid-Hazard-Classifier.git
+cd Asteroid-Hazard-Classifier
+poetry install
+```
+
+**2. Create `.env`** (gitignored — never commit):
 
 ```env
 NASA_API_KEY=your_nasa_api_key
@@ -194,28 +302,36 @@ DAGSHUB_REPO_OWNER=your_dagshub_owner
 DAGSHUB_REPO_NAME=your_dagshub_repo_name
 ```
 
-**2. Build and run:**
+**3. Run the pipeline locally:**
+
+```bash
+# Ingest latest data
+poetry run python -m asteroid_classifier.data.ingestion
+
+# Validate
+poetry run python -m asteroid_classifier.data.validation
+
+# Train and promote
+poetry run python -m asteroid_classifier.models.trainer
+
+# Serve
+PYTHONPATH=src poetry run uvicorn asteroid_classifier.api.main:app --host 0.0.0.0 --port 7860
+```
+
+**4. Or run via Docker:**
 
 ```bash
 docker build -f docker/Dockerfile -t neo-sentinel:local .
-
-docker run --rm \
-  --env-file secrets.env \
-  -p 7860:7860 \
-  -p 8501:8501 \
-  neo-sentinel:local
+docker run --rm --env-file .env -p 7860:7860 -p 8501:8501 neo-sentinel:local
 ```
-
-**3. Verify both services:**
 
 | Service | URL |
 |---------|-----|
 | Prediction API | `http://localhost:7860/health` |
+| Swagger UI | `http://localhost:7860/docs` |
 | Gradio UI | `http://localhost:7860/ui` |
 | Admin Dashboard | `http://localhost:8501` |
 
-> **Note:** `secrets.env` is listed in `.gitignore` and must never be committed.
-
 ---
 
-*Built with 🔭 NASA open data · MLflow on DagsHub · FastAPI · Gradio · XGBoost · DVC*
+*Built with 🔭 NASA open data · MLflow on DagsHub · FastAPI · Gradio · XGBoost · DVC · GitHub Actions*
