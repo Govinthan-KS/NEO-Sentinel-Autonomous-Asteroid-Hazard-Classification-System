@@ -183,7 +183,7 @@ def train_single_model(
         )
 
     today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    run_name = f"{display_name}-7D-Rolling-{today_str}"
+    run_name = f"{display_name}-30D-Rolling-{today_str}"
 
     logger.info(f"[{display_name}] Starting MLflow run: {run_name}")
 

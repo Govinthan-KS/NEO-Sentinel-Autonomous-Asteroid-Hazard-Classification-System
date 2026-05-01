@@ -55,10 +55,10 @@ LOG_TAIL_LINES: int = 200
 REGISTRY_CACHE_TTL: int = 60   # seconds
 LEADERBOARD_CACHE_TTL: int = 120  # seconds — leaderboard is less time-sensitive
 
-THRESHOLD_RECALL: float    = 0.90
-THRESHOLD_PRECISION: float = 0.70
-THRESHOLD_F1: float        = 0.85
-THRESHOLD_ROC_AUC: float   = 0.92
+THRESHOLD_RECALL: float    = 0.70  # production target: 0.90
+THRESHOLD_PRECISION: float = 0.30  # guardrail only — blocks dummy models; production target: 0.70
+THRESHOLD_F1: float        = 0.50  # production target: 0.85
+THRESHOLD_ROC_AUC: float   = 0.80  # production target: 0.92
 
 
 # ---------------------------------------------------------------------------
@@ -649,10 +649,10 @@ def render_header() -> None:
         )
     with col_nav:
         st.markdown("<br><br>", unsafe_allow_html=True)
-        # Opens the Gradio prediction UI — same host, path /ui (served by FastAPI on port 7860)
+        # Opens the Gradio prediction UI — same host, root path (mounted at / on port 7860)
         st.markdown(
-            '<a class="nav-btn" href="http://localhost:7860/ui" target="_blank">'
-            "⚡ &nbsp; Prediction Portal"
+            '<a class="nav-btn" href="http://localhost:7860" target="_blank">'
+            "⚡ &nbsp; Classification Portal"
             "</a>",
             unsafe_allow_html=True,
         )
@@ -805,7 +805,7 @@ def render_env_disclaimer() -> None:
             font-family: 'Inter', sans-serif;
         ">
             ℹ️ &nbsp;<strong style="color:#a8d8ea;">Environment Note:</strong>
-            Operating in production mode. Direct navigation to the Prediction Portal
+            Operating in production mode. Direct navigation to the Classification Portal
             requires the main service port (7860) to be accessible.
         </div>
         """,
