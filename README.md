@@ -28,11 +28,11 @@ NEO-Sentinel ingests Near-Earth Object (NEO) telemetry from NASA's NeoWs API on 
 
 **The ML design constraint:** Recall is the primary optimization objective. A missed hazardous asteroid is catastrophically worse than a false alarm. The system only promotes a model to production when all three thresholds are simultaneously satisfied:
 
-| Metric | Production Threshold | Rationale |
-|--------|---------------------|-----------|
-| **Recall** | ≥ 0.90 | Must not miss hazardous objects |
-| **F1 Score** | ≥ 0.85 | Balances precision with high recall |
-| **ROC-AUC** | ≥ 0.92 | Full discriminability across all thresholds |
+| Metric | Current Threshold | Production Target | Rationale |
+|--------|------------------|------------------|--------|
+| **Recall** | ≥ 0.70 | ≥ 0.90 | Must not miss hazardous objects |
+| **F1 Score** | ≥ 0.50 | ≥ 0.85 | Balances precision with high recall |
+| **ROC-AUC** | ≥ 0.80 | ≥ 0.92 | Full discriminability across all thresholds |
 
 > **Note:** Thresholds are temporarily relaxed for sparse 30-day rolling datasets (≤ 300 hazardous samples). Production targets above are restored when data volume scales. See `configs/training/training.yaml`.
 
@@ -52,12 +52,12 @@ flowchart TD
     F --> H[Random Forest]
     F --> I[XGBoost]
 
-    G & H & I -->|Metrics| J{Champion Selection\nRecall then F1 tie-breaker}
+    G & H & I -->|Metrics| J{Champion Selection\nRecall >= 0.70, F1 >= 0.50}
     J -->|Below threshold| K([Run logged\nNo promotion])
     J -->|Best model passes| L[MLflow Model Registry\nDagsHub]
 
     L -->|champion alias| M[FastAPI + Uvicorn\nPort 7860]
-    M --> N[Gradio UI\n/ui]
+    M --> N[Gradio UI\nPort 7860 root]
     M --> O[REST API\n/predict]
     M --> P[Streamlit Dashboard\nPort 8501]
 
@@ -80,7 +80,7 @@ flowchart TD
         ↓
 [4] MODEL TRAINING     LightGBM + Random Forest + XGBoost → MLflow on DagsHub
         ↓
-[5] CHAMPION SELECTION Best recall model → precision guardrail → @champion alias
+[5] CHAMPION SELECTION Recall >= 0.70, F1 >= 0.50, ROC-AUC >= 0.80 -> @champion alias
         ↓
 [6] SERVING            FastAPI + Gradio → This HuggingFace Space  ← YOU ARE HERE
         ↓
@@ -115,7 +115,7 @@ flowchart TD
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/predict` | `POST` | Submit asteroid telemetry, receive hazard prediction |
-| `/ui` | `GET` | Gradio interactive prediction interface |
+| `/` | `GET` | Gradio interactive prediction interface (root, port 7860) |
 | `/health` | `GET` | Liveness check — returns `{"status": "ok"}` |
 | `/docs` | `GET` | FastAPI auto-generated Swagger UI |
 | `/redoc` | `GET` | FastAPI ReDoc documentation |
@@ -329,7 +329,7 @@ docker run --rm --env-file .env -p 7860:7860 -p 8501:8501 neo-sentinel:local
 |---------|-----|
 | Prediction API | `http://localhost:7860/health` |
 | Swagger UI | `http://localhost:7860/docs` |
-| Gradio UI | `http://localhost:7860/ui` |
+| Gradio UI | `http://localhost:7860` |
 | Admin Dashboard | `http://localhost:8501` |
 
 ---
