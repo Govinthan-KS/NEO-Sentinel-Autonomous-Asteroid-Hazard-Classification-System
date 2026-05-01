@@ -1,5 +1,6 @@
 defaults:
   - data: ingestion
+  - training: training
   - api: default
   - _self_
 
