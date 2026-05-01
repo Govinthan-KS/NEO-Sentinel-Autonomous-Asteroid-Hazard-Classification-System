@@ -88,7 +88,7 @@ jobs:
       - name: Record pre-training @champion run_id
         id: pre-champion
         run: |
-          CHAMPION_BEFORE=$(python - <<'PYEOF'
+          CHAMPION_BEFORE=$(poetry run python - <<'PYEOF'
           import os, sys
           os.environ["DAGSHUB_NON_INTERACTIVE"] = "1"
           os.environ["DAGSHUB_USER_TOKEN"] = os.environ.get("DAGSHUB_TOKEN", "")
@@ -151,7 +151,7 @@ jobs:
       - name: Detect if @champion was promoted
         id: detect-promotion
         run: |
-          CHAMPION_AFTER=$(python - <<'PYEOF'
+          CHAMPION_AFTER=$(poetry run python - <<'PYEOF'
           import os, sys
           os.environ["DAGSHUB_NON_INTERACTIVE"] = "1"
           os.environ["DAGSHUB_USER_TOKEN"] = os.environ.get("DAGSHUB_TOKEN", "")
