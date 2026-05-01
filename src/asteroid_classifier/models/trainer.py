@@ -517,7 +517,7 @@ def run_training_pipeline() -> None:
                     f"{[Path(f).stem for f in model_yaml_files]}")
 
         # ── Parent run wraps all three child runs for DagsHub UI cleanliness ────
-        parent_run_name = f"NEO-Sentinel-Battle-Royale-{today_str}"
+        parent_run_name = f"NEO-Sentinel-Training-{today_str}"
         logger.info(f"Opening parent MLflow run: '{parent_run_name}'")
 
         with mlflow.start_run(run_name=parent_run_name) as parent_run:

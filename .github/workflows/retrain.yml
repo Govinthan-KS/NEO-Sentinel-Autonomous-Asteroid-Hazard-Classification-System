@@ -1,5 +1,5 @@
 # ============================================================
-# retrain.yml — Battle Royale Scheduled Retraining Pipeline
+# retrain.yml — NEO-Sentinel Scheduled Retraining Pipeline
 # ============================================================
 # Triggers:
 #   - schedule (cron)    → Daily at 13:00 IST (07:30 UTC)
@@ -7,7 +7,7 @@
 #
 # Pipeline:
 #   1. Ingest     — fetch latest 30-day NASA NeoWs data
-#   2. Train      — run multi-model Battle Royale benchmarking loop
+#   2. Train      — run multi-model benchmarking loop
 #   3. Detect     — compare @champion run_id before vs after training
 #   4. Promote    — trainer.py handles promotion automatically
 #   5. Redeploy   — call deploy.yml only when a new champion is promoted
@@ -19,7 +19,7 @@
 #   - DAGSHUB_REPO_OWNER, DAGSHUB_REPO_NAME
 # ============================================================
 
-name: "Battle Royale 🏆 Scheduled Retraining Pipeline"
+name: "NEO-Sentinel Scheduled Retraining Pipeline"
 
 on:
   schedule:
@@ -137,10 +137,12 @@ jobs:
           echo "[NEO-Sentinel] DVC versioning step complete."
 
       # ── Step 2: Train + Benchmark + Promote (all in trainer.py) ──────────
-      - name: "Step 2 \u2014 Multi-model Battle Royale benchmarking"
+      - name: "Step 2 \u2014 Multi-model benchmarking"
         run: |
           echo "[NEO-Sentinel] Starting multi-model benchmarking pipeline..."
-          poetry run python -m asteroid_classifier.models.trainer
+          set -o pipefail
+          poetry run python -m asteroid_classifier.models.trainer 2>&1 \
+            | grep -Ev "View (run|experiment) at:"
           echo "[NEO-Sentinel] Benchmarking complete."
 
       # ── Snapshot @champion AFTER training and compare ─────────────────────
@@ -174,7 +176,7 @@ jobs:
       - name: Pipeline summary
         run: |
           echo "=================================================="
-          echo "  NEO-Sentinel Battle Royale — Summary"
+          echo "  NEO-Sentinel Retraining Pipeline — Summary"
           echo "=================================================="
           echo "  Date        : $(date -u '+%Y-%m-%d %H:%M UTC')"
           echo "  Triggered by: ${{ github.event_name }}"
