@@ -52,11 +52,11 @@ flowchart TD
     F --> H[Random Forest]
     F --> I[XGBoost]
 
-    G & H & I -->|Metrics| J{Champion Selection\nRecall → F1 tie-breaker}
+    G & H & I -->|Metrics| J{Champion Selection\nRecall then F1 tie-breaker}
     J -->|Below threshold| K([Run logged\nNo promotion])
     J -->|Best model passes| L[MLflow Model Registry\nDagsHub]
 
-    L -->|@champion alias| M[FastAPI + Uvicorn\nPort 7860]
+    L -->|champion alias| M[FastAPI + Uvicorn\nPort 7860]
     M --> N[Gradio UI\n/ui]
     M --> O[REST API\n/predict]
     M --> P[Streamlit Dashboard\nPort 8501]
