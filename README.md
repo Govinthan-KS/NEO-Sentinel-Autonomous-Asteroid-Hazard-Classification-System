@@ -82,7 +82,7 @@ flowchart TD
         ↓
 [5] CHAMPION SELECTION Recall >= 0.70, F1 >= 0.50, ROC-AUC >= 0.80 -> @champion alias
         ↓
-[6] SERVING            FastAPI + Gradio → This HuggingFace Space  ← YOU ARE HERE
+[6] SERVING            FastAPI + Gradio → This HuggingFace Space
         ↓
 [7] OBSERVABILITY      Loguru structured logs + Streamlit Admin Dashboard (port 8501)
         ↓
