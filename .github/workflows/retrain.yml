@@ -142,7 +142,15 @@ jobs:
           git config user.email "actions@github.com"
           git add data.dvc
           git commit -m "data: rolling window update $(date -u '+%Y-%m-%d')" || echo "Nothing to commit"
+          
+          # Push to GitHub (primary)
           git push origin HEAD:${GITHUB_REF_NAME:-main}
+          
+          # Add DagsHub remote silently to prevent token leakage in Action logs
+          git remote add dagshub https://${{ vars.DAGSHUB_REPO_OWNER }}:${{ secrets.DAGSHUB_TOKEN }}@dagshub.com/${{ vars.DAGSHUB_REPO_OWNER }}/${{ vars.DAGSHUB_REPO_NAME }}.git > /dev/null 2>&1
+          
+          # Push to DagsHub (mirror for lineage UI)
+          git push dagshub HEAD:${GITHUB_REF_NAME:-main}
 
       # ── Step 2: Train + Benchmark + Promote (all in trainer.py) ──────────
       - name: "Step 2 \u2014 Multi-model benchmarking"
