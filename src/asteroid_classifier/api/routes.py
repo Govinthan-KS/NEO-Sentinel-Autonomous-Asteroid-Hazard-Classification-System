@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse
 import pandas as pd
 import os
 import datetime
-from asteroid_classifier.api.schemas import AsteroidFeatures, PredictionResponse
+from asteroid_classifier.api.schemas import AsteroidFeatures, PredictionResponse, ExplainResponse
 from asteroid_classifier.core.logging import get_logger
 from asteroid_classifier.utils.notifications import notify_high_hazard
 
@@ -65,3 +65,22 @@ async def predict(request: Request, features: AsteroidFeatures, background_tasks
     background_tasks.add_task(_append_to_parquet, features.model_dump(), model_version, confidence, timestamp)
 
     return response
+
+@router.post("/explain", response_model=ExplainResponse)
+async def explain(request: Request, features: AsteroidFeatures):
+    logger.info(f"Received explanation request shape: {features.model_dump()}")
+    predictor = request.app.state.predictor
+
+    try:
+        is_hazardous, confidence, contributions = predictor.explain(features.model_dump())
+        response = ExplainResponse(
+            is_hazardous=is_hazardous, 
+            confidence=confidence, 
+            explanations=contributions
+        )
+        logger.info(f"Returning explanation: is_hazardous={is_hazardous}, confidence={confidence:.4f}")
+        return response
+    except Exception as e:
+        logger.error(f"Failed to generate explanation: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+

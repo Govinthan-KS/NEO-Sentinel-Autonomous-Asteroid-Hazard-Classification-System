@@ -260,6 +260,7 @@ def train_single_model(
         "model_type": model_type,
         "metrics": metrics,
         "passed_threshold": passed,
+        "pipeline": pipeline,
     }
 
 
@@ -268,6 +269,56 @@ def train_single_model(
 # ---------------------------------------------------------------------------
 PRECISION_GUARDRAIL: float = 0.30  # blocks pure dummy models (precision≈0)
 # XGBoost on sparse data: precision≈0.375 — revert to 0.70 when data volume grows
+
+
+def generate_shap_summary(pipeline, X_test, output_path: str) -> list:
+    """Generates a SHAP summary plot and returns the top 5 feature names."""
+    import shap
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import numpy as np
+
+    preprocessor = pipeline.named_steps.get("preprocessor")
+    classifier = pipeline.named_steps.get("classifier")
+    
+    if not preprocessor or not classifier:
+        raise ValueError("Pipeline missing preprocessor or classifier.")
+
+    X_test_transformed = preprocessor.transform(X_test)
+    if hasattr(preprocessor, "get_feature_names_out"):
+        feature_names = preprocessor.get_feature_names_out()
+    else:
+        feature_names = [f"feature_{i}" for i in range(X_test_transformed.shape[1])]
+        
+    explainer = shap.TreeExplainer(classifier)
+    shap_vals = explainer.shap_values(X_test_transformed)
+    
+    if isinstance(shap_vals, list):
+        shap_vals = shap_vals[1]
+    
+    if shap_vals.ndim == 3:
+        shap_vals = shap_vals[:, :, 1]
+        
+    try:
+        X_test_dense = X_test_transformed.toarray()
+    except AttributeError:
+        X_test_dense = X_test_transformed
+    
+    # Plot
+    plt.figure(figsize=(10, 8))
+    shap.summary_plot(shap_vals, X_test_dense, feature_names=feature_names, show=False)
+    
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    # Top 5 features
+    mean_abs_shap = np.abs(shap_vals).mean(axis=0)
+    top_idx = np.argsort(mean_abs_shap)[::-1][:5]
+    top_features = [feature_names[i] for i in top_idx]
+    
+    return top_features
 
 
 def _get_current_champion_metrics(client: MlflowClient) -> dict:
@@ -295,6 +346,7 @@ def _do_promote(
     client: MlflowClient,
     best: dict,
     reason: str,
+    X_test: np.ndarray = None,
 ) -> None:
     """Registers and aliases the best run as @champion."""
     logger = get_logger_instance()
@@ -332,8 +384,29 @@ def _do_promote(
         f"Reason: {reason}"
     )
 
+    if X_test is not None:
+        try:
+            import tempfile
+            pipeline = best.get("pipeline")
+            if pipeline is not None:
+                logger.info("[NEO-Sentinel] Computing global SHAP explanations for champion model...")
+                temp_plot_path = os.path.join(tempfile.gettempdir(), "shap_summary.png")
+                
+                top_features = generate_shap_summary(pipeline, X_test, temp_plot_path)
+                
+                client.log_artifact(best["run_id"], temp_plot_path)
+                logger.info("[NEO-Sentinel] Logged SHAP summary plot artifact.")
+                
+                client.log_param(best["run_id"], "top_5_features", ", ".join(top_features))
+                logger.info(f"[NEO-Sentinel] Top 5 features by SHAP: {', '.join(top_features)}")
+                    
+        except ImportError:
+            logger.warning("[NEO-Sentinel] shap or matplotlib not installed; skipping SHAP explanation.")
+        except Exception as e:
+            logger.error(f"[NEO-Sentinel] Failed to generate SHAP explanations during promotion: {e}")
 
-def select_and_promote_champion(results: list, training_config: dict) -> None:
+
+def select_and_promote_champion(results: list, training_config: dict, X_test: np.ndarray) -> None:
     """
     Multi-tiered champion-challenger selection.
 
@@ -402,7 +475,7 @@ def select_and_promote_champion(results: list, training_config: dict) -> None:
             "[NEO-Sentinel] No existing @champion found. "
             "Promoting first eligible model unconditionally."
         )
-        _do_promote(client, best, reason="first champion")
+        _do_promote(client, best, reason="first champion", X_test=X_test)
         return
 
     logger.info(
@@ -414,6 +487,7 @@ def select_and_promote_champion(results: list, training_config: dict) -> None:
         _do_promote(
             client, best,
             reason=f"higher recall ({bm['recall']:.4f} > {c_recall:.4f})",
+            X_test=X_test,
         )
         return
 
@@ -433,6 +507,7 @@ def select_and_promote_champion(results: list, training_config: dict) -> None:
         _do_promote(
             client, best,
             reason=f"F1 tie-breaker ({bm['f1']:.4f} > {c_f1:.4f})",
+            X_test=X_test,
         )
         return
 
@@ -451,6 +526,7 @@ def select_and_promote_champion(results: list, training_config: dict) -> None:
     _do_promote(
         client, best,
         reason="newer model with identical metrics (data freshness)",
+        X_test=X_test,
     )
 
 
@@ -572,7 +648,7 @@ def run_training_pipeline() -> None:
 
         # Champion-Challenger runs outside the parent run context so promotion
         # registry calls aren't attributed to the parent MLflow run.
-        select_and_promote_champion(results, training_config)
+        select_and_promote_champion(results, training_config, X_test)
 
     except ModelPromotionError as exc:
         logger.error(f"Promotion error: {exc}")

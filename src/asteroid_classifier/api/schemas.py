@@ -18,6 +18,14 @@ class PredictionResponse(BaseModel):
     is_hazardous: bool = Field(..., description="Hazardous classification")
     confidence: float = Field(..., ge=0, le=1, description="Confidence score")
 
+class FeatureContribution(BaseModel):
+    feature_name: str = Field(..., description="Name of the feature")
+    feature_value: float = Field(..., description="Input value of the feature")
+    shap_contribution: float = Field(..., description="SHAP value contribution of the feature")
+
+class ExplainResponse(PredictionResponse):
+    explanations: list[FeatureContribution] = Field(..., description="List of feature contributions via SHAP")
+
 class ErrorResponse(BaseModel):
     error: str
     message: str
