@@ -6,12 +6,9 @@ to the DagsHub remote, so every MLflow training run carries a traceable
 data lineage hash.
 
 Design contract (critical for pipeline safety):
-  - DVC push failure is NON-BLOCKING.
-    A WARNING is logged and the function returns the best available hash.
-    Training always proceeds — data upload is a lineage feature, not a
-    correctness requirement.
-  - No exception propagates out of version_and_push_data().
-    The caller can rely on always receiving a string hash back.
+  - DVC push failure is BLOCKING.
+    An exception is raised if `dvc add` or `dvc push` fails, ensuring the
+    pipeline halts and doesn't train on unpushed data.
   - All credentials sourced exclusively from os.getenv().
   - Subprocess calls have explicit timeouts — never hangs the runner.
 
@@ -149,10 +146,9 @@ def version_and_push_data() -> str:
 
     Returns:
         The DVC content hash (md5) string for MLflow lineage tagging.
-        Always returns a string — 'unknown_hash' on unrecoverable failure.
 
-    This function NEVER raises. All failures are logged as WARNING and the
-    function returns gracefully so training always proceeds.
+    Raises:
+        RuntimeError if `dvc add` or `dvc push` fails.
     """
     logger.info("[NEO-Sentinel] Starting DVC data versioning...")
 
@@ -163,12 +159,8 @@ def version_and_push_data() -> str:
     if ok:
         logger.info("[NEO-Sentinel] dvc add succeeded.")
     else:
-        logger.warning(
-            f"[NEO-Sentinel] dvc add failed (non-blocking): {msg}\n"
-            "The data.dvc hash may be stale this run. Training will proceed."
-        )
-        # Return whatever hash is already in data.dvc — better than nothing
-        return _read_dvc_hash()
+        logger.error(f"[NEO-Sentinel] dvc add failed: {msg}")
+        raise RuntimeError(f"DVC add failed: {msg}")
 
     # Read the fresh hash written by dvc add
     fresh_hash = _read_dvc_hash()
@@ -189,14 +181,9 @@ def version_and_push_data() -> str:
             f"dataset version {fresh_hash[:12]}… is now on DagsHub remote."
         )
     else:
-        logger.warning(
-            f"[NEO-Sentinel] DVC push failed (non-blocking): {msg}\n"
-            "Data was NOT uploaded to DagsHub this run. "
-            "The MLflow run will still be tagged with the local hash for partial lineage. "
-            "Training will proceed."
-        )
+        logger.error(f"[NEO-Sentinel] DVC push failed: {msg}")
+        raise RuntimeError(f"DVC push failed: {msg}")
 
-    # Return hash regardless of push success — MLflow gets the correct hash
     return fresh_hash
 
 
@@ -206,6 +193,4 @@ def version_and_push_data() -> str:
 if __name__ == "__main__":
     hash_value = version_and_push_data()
     logger.info(f"[NEO-Sentinel] Versioning step complete. Hash: {hash_value}")
-    # Always exit 0 — DVC push failure is a WARNING, not a pipeline error.
-    # The CI step uses continue-on-error: true as an additional safeguard.
     sys.exit(0)

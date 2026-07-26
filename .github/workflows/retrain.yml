@@ -130,16 +130,19 @@ jobs:
           echo "[NEO-Sentinel] Validation gate passed — proceeding to training."
 
       # ── Step 1.75: Version dataset with DVC ──────────────────────────────
-      # Non-blocking by design: versioning.py always exits 0.
-      # continue-on-error: true is a second safeguard in case of unexpected
-      # runner-level failures (OOM, DVC binary missing, etc.).
-      # Training is NEVER halted by a DVC push failure.
-      - name: "Step 1.75 \u2014 Version dataset with DVC (non-blocking)"
-        continue-on-error: true
+      - name: "Step 1.75 \u2014 Version dataset with DVC"
         run: |
           echo "[NEO-Sentinel] Versioning dataset with DVC and pushing to DagsHub..."
           poetry run python -m asteroid_classifier.data.versioning
           echo "[NEO-Sentinel] DVC versioning step complete."
+
+      - name: "Commit and push data.dvc lineage"
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "actions@github.com"
+          git add data.dvc
+          git commit -m "data: rolling window update $(date -u '+%Y-%m-%d')" || echo "Nothing to commit"
+          git push origin HEAD:${GITHUB_REF_NAME:-main}
 
       # ── Step 2: Train + Benchmark + Promote (all in trainer.py) ──────────
       - name: "Step 2 \u2014 Multi-model benchmarking"
