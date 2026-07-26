@@ -239,18 +239,27 @@ def build_ui(predictor):
                 miss_distance_km=miss,
                 orbiting_body=body,
             )
-            is_haz, conf = predictor.predict(features.model_dump())
-            if is_haz:
+            res = predictor.predict(features.model_dump())
+            if res.is_hazardous:
                 result_str = "🛑 HAZARDOUS"
                 card_class = "result-hazardous"
             else:
                 result_str = "✅ SAFE"
                 card_class = "result-safe"
+                
+            anomaly_str = ""
+            if res.is_anomaly is not None:
+                if res.is_anomaly:
+                    anomaly_str = f"<p><strong>Anomaly Status:</strong> ⚠️ ANOMALOUS (Score: {res.anomaly_score:.3f})</p>"
+                else:
+                    anomaly_str = f"<p><strong>Anomaly Status:</strong> 🟢 Normal</p>"
+
             return (
                 f'<div class="result-card {card_class}">'
                 f"<h3>Result</h3>"
                 f"<p><strong>Status:</strong> {result_str}</p>"
-                f"<p><strong>Confidence:</strong> {conf:.2%}</p>"
+                f"<p><strong>Confidence:</strong> {res.confidence:.2%}</p>"
+                f"{anomaly_str}"
                 f"</div>"
             )
         except Exception as e:

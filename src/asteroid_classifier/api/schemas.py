@@ -17,6 +17,8 @@ class AsteroidFeatures(BaseModel):
 class PredictionResponse(BaseModel):
     is_hazardous: bool = Field(..., description="Hazardous classification")
     confidence: float = Field(..., ge=0, le=1, description="Confidence score")
+    is_anomaly: bool | None = Field(default=None, description="Flagged as statistical anomaly")
+    anomaly_score: float | None = Field(default=None, description="Anomaly isolation score (lower is more anomalous)")
 
 class FeatureContribution(BaseModel):
     feature_name: str = Field(..., description="Name of the feature")

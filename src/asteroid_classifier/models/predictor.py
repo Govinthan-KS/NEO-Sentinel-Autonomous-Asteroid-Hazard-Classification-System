@@ -1,10 +1,18 @@
 import mlflow
 import pandas as pd
-from typing import Tuple
+from typing import Tuple, Optional
+from dataclasses import dataclass
 from asteroid_classifier.core.logging import get_logger
 from asteroid_classifier.core.exceptions import ModelNotLoadedError, PredictionError
 import os
 import dagshub
+
+@dataclass
+class PredictionResult:
+    is_hazardous: bool
+    confidence: float
+    is_anomaly: Optional[bool] = None
+    anomaly_score: Optional[float] = None
 
 class AsteroidPredictor:
     def __init__(self, model_uri: str):
@@ -12,6 +20,7 @@ class AsteroidPredictor:
         self.model_uri = model_uri
         self.model = None
         self.explainer = None
+        self.anomaly_detector = None
         self._load_model()
 
     def _load_model(self):
@@ -22,6 +31,15 @@ class AsteroidPredictor:
             self.logger.info(f"[NEO-Sentinel] Loading MLflow model from: {self.model_uri}")
             self.model = mlflow.pyfunc.load_model(self.model_uri)
             self.logger.info("[NEO-Sentinel] Model loaded successfully.")
+            
+            try:
+                champion_run_id = self.model.metadata.run_id
+                if champion_run_id:
+                    anomaly_uri = f"runs:/{champion_run_id}/anomaly_detector"
+                    self.logger.info(f"[NEO-Sentinel] Attempting to load anomaly detector from {anomaly_uri}")
+                    self.anomaly_detector = mlflow.sklearn.load_model(anomaly_uri)
+            except Exception as e:
+                self.logger.warning(f"[NEO-Sentinel] Could not load anomaly detector: {e}")
             
             try:
                 import shap
@@ -44,7 +62,7 @@ class AsteroidPredictor:
             raise ModelNotLoadedError(str(e))
 
 
-    def predict(self, features_dict: dict) -> Tuple[bool, float]:
+    def predict(self, features_dict: dict) -> PredictionResult:
         if self.model is None:
             raise ModelNotLoadedError("Model is not initialized.")
         
@@ -55,17 +73,38 @@ class AsteroidPredictor:
             # Use pyfunc model to predict
             prediction = self.model.predict(df)
             
+            # Unwrap pyfunc
+            pipeline = getattr(self.model, '_model_impl', None)
+            if hasattr(pipeline, "sklearn_model"):
+                pipeline = pipeline.sklearn_model
+            
             # Predict Proba if available
-            if hasattr(self.model, '_model_impl') and hasattr(self.model._model_impl, 'predict_proba'):
-                proba = self.model._model_impl.predict_proba(df)[0]
+            if pipeline is not None and hasattr(pipeline, 'predict_proba'):
+                proba = pipeline.predict_proba(df)[0]
                 confidence = float(max(proba))
             else:
                 confidence = 1.0 # fallback
                 
             pred_val = bool(prediction[0])
             
-            self.logger.info(f"Made prediction: {pred_val} with confidence: {confidence:.2f}")
-            return pred_val, confidence
+            is_anomaly = None
+            anomaly_score = None
+            
+            if self.anomaly_detector is not None and pipeline is not None:
+                preprocessor = pipeline.named_steps.get("preprocessor")
+                if preprocessor:
+                    transformed_features = preprocessor.transform(df)
+                    iso_pred = self.anomaly_detector.predict(transformed_features)[0]
+                    is_anomaly = bool(iso_pred == -1)
+                    anomaly_score = float(self.anomaly_detector.score_samples(transformed_features)[0])
+            
+            self.logger.info(f"Made prediction: {pred_val} with confidence: {confidence:.2f}, anomaly: {is_anomaly}")
+            return PredictionResult(
+                is_hazardous=pred_val, 
+                confidence=confidence, 
+                is_anomaly=is_anomaly, 
+                anomaly_score=anomaly_score
+            )
         except Exception as e:
             self.logger.error(f"Prediction failed: {e}")
             raise PredictionError(str(e))
@@ -79,7 +118,9 @@ class AsteroidPredictor:
             
         try:
             # 1. Get standard prediction first
-            pred_val, confidence = self.predict(features_dict)
+            res = self.predict(features_dict)
+            pred_val = res.is_hazardous
+            confidence = res.confidence
             
             # 2. Extract pipeline and transform input data for the explainer
             pipeline = self.model._model_impl

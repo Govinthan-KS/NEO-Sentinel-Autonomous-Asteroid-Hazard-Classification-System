@@ -346,7 +346,9 @@ def _do_promote(
     client: MlflowClient,
     best: dict,
     reason: str,
+    X_train: np.ndarray = None,
     X_test: np.ndarray = None,
+    training_config: dict = None,
 ) -> None:
     """Registers and aliases the best run as @champion."""
     logger = get_logger_instance()
@@ -384,6 +386,26 @@ def _do_promote(
         f"Reason: {reason}"
     )
 
+
+    if X_train is not None:
+        try:
+            logger.info("[NEO-Sentinel] Fitting Isolation Forest on training data...")
+            pipeline = best.get("pipeline")
+            preprocessor = pipeline.named_steps.get("preprocessor") if pipeline else None
+            if preprocessor:
+                X_train_transformed = preprocessor.transform(X_train)
+                contamination = training_config.get("anomaly_detector", {}).get("contamination", 0.05)
+                from sklearn.ensemble import IsolationForest
+                import mlflow.sklearn
+                iso_forest = IsolationForest(contamination=contamination, random_state=42)
+                iso_forest.fit(X_train_transformed)
+                mlflow.sklearn.log_model(iso_forest, "anomaly_detector")
+                logger.info("[NEO-Sentinel] Isolation Forest anomaly detector trained and logged.")
+            else:
+                logger.warning("[NEO-Sentinel] Could not extract preprocessor; skipping Isolation Forest.")
+        except Exception as e:
+            logger.error(f"[NEO-Sentinel] Failed to train/log Isolation Forest: {e}")
+
     if X_test is not None:
         try:
             import tempfile
@@ -406,7 +428,7 @@ def _do_promote(
             logger.error(f"[NEO-Sentinel] Failed to generate SHAP explanations during promotion: {e}")
 
 
-def select_and_promote_champion(results: list, training_config: dict, X_test: np.ndarray) -> None:
+def select_and_promote_champion(results: list, training_config: dict, X_train: np.ndarray, X_test: np.ndarray) -> None:
     """
     Multi-tiered champion-challenger selection.
 
@@ -475,7 +497,7 @@ def select_and_promote_champion(results: list, training_config: dict, X_test: np
             "[NEO-Sentinel] No existing @champion found. "
             "Promoting first eligible model unconditionally."
         )
-        _do_promote(client, best, reason="first champion", X_test=X_test)
+        _do_promote(client, best, reason="first champion", X_train=X_train, X_test=X_test, training_config=training_config)
         return
 
     logger.info(
@@ -487,7 +509,7 @@ def select_and_promote_champion(results: list, training_config: dict, X_test: np
         _do_promote(
             client, best,
             reason=f"higher recall ({bm['recall']:.4f} > {c_recall:.4f})",
-            X_test=X_test,
+            X_train=X_train, X_test=X_test, training_config=training_config,
         )
         return
 
@@ -507,7 +529,7 @@ def select_and_promote_champion(results: list, training_config: dict, X_test: np
         _do_promote(
             client, best,
             reason=f"F1 tie-breaker ({bm['f1']:.4f} > {c_f1:.4f})",
-            X_test=X_test,
+            X_train=X_train, X_test=X_test, training_config=training_config,
         )
         return
 
@@ -526,7 +548,7 @@ def select_and_promote_champion(results: list, training_config: dict, X_test: np
     _do_promote(
         client, best,
         reason="newer model with identical metrics (data freshness)",
-        X_test=X_test,
+        X_train=X_train, X_test=X_test, training_config=training_config,
     )
 
 
@@ -648,7 +670,7 @@ def run_training_pipeline() -> None:
 
         # Champion-Challenger runs outside the parent run context so promotion
         # registry calls aren't attributed to the parent MLflow run.
-        select_and_promote_champion(results, training_config, X_test)
+        select_and_promote_champion(results, training_config, X_train, X_test)
 
     except ModelPromotionError as exc:
         logger.error(f"Promotion error: {exc}")

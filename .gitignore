@@ -40,7 +40,7 @@ Thumbs.db
 
 # IDE
 .vscode/
-shap_summary_test.png
+
 .idea/
 
 # Docker
@@ -50,6 +50,8 @@ docker/volumes/
 airflow/logs/
 airflow/plugins/
 
+
+
 # Project reference documents
 ENGINEERING_STANDARDS.md
 *.docx
@@ -57,3 +59,6 @@ phase_tracking.md
 PROJECT_CONTEXT.md
 NEO-Sentinel-Codebase-Audit.md
 SETUP.md
+
+# Temporary testing scripts
+scripts/temp_scripts/

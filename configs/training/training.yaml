@@ -12,3 +12,6 @@ thresholds:
   recall:  0.70
   f1:      0.50
   roc_auc: 0.80
+
+anomaly_detection:
+  contamination: 0.05

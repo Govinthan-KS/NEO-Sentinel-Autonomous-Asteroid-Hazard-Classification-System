@@ -47,22 +47,28 @@ async def health() -> dict:
 async def predict(request: Request, features: AsteroidFeatures, background_tasks: BackgroundTasks):
     logger.info(f"Received prediction request shape: {features.model_dump()}")
     predictor = request.app.state.predictor
+    
+    res = predictor.predict(features.model_dump())
+    
+    response = PredictionResponse(
+        is_hazardous=res.is_hazardous,
+        confidence=res.confidence,
+        is_anomaly=res.is_anomaly,
+        anomaly_score=res.anomaly_score,
+        model_alias="champion"
+    )
+    logger.info(f"Returning prediction: is_hazardous={res.is_hazardous}, confidence={res.confidence:.4f}")
 
-    is_hazardous, confidence = predictor.predict(features.model_dump())
-
-    response = PredictionResponse(is_hazardous=is_hazardous, confidence=confidence)
-    logger.info(f"Returning prediction: is_hazardous={is_hazardous}, confidence={confidence:.4f}")
-
-    if confidence > 0.90:
+    if res.confidence > 0.90:
         try:
-            notify_high_hazard(confidence, features.model_dump())
+            notify_high_hazard(res.confidence, features.model_dump())
         except Exception as e:
             logger.error(f"Failed to send Discord alert synchronously: {e}")
             raise HTTPException(status_code=500, detail=str(e))
 
     timestamp = datetime.datetime.utcnow().isoformat()
     model_version = getattr(predictor, "model_uri", "unknown")
-    background_tasks.add_task(_append_to_parquet, features.model_dump(), model_version, confidence, timestamp)
+    background_tasks.add_task(_append_to_parquet, features.model_dump(), model_version, res.confidence, timestamp)
 
     return response
 
