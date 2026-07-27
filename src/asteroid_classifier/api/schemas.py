@@ -40,6 +40,11 @@ class ChampionMetricsResponse(BaseModel):
     roc_auc: float | None = None
     dvc_hash: str | None = None
     model_name: str | None = None
+    run_name: str | None = None
+    trained_date: str | None = None
+    days_since_trained: int | None = None
+    last_challenged_date: str | None = None
+    days_since_last_challenge: int | None = None
 
 class LeaderboardRun(BaseModel):
     run_id: str

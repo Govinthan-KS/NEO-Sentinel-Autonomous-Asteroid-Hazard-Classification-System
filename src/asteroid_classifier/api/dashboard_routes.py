@@ -27,6 +27,31 @@ async def get_champion_metrics():
         run = client.get_run(mv.run_id)
         metrics = run.data.metrics
         params = run.data.params
+        
+        now = datetime.datetime.now(datetime.timezone.utc)
+        
+        trained_date = None
+        days_since_trained = None
+        if run.info.start_time:
+            ts = datetime.datetime.fromtimestamp(run.info.start_time / 1000.0, tz=datetime.timezone.utc)
+            trained_date = ts.isoformat()
+            days_since_trained = (now - ts).days
+
+        last_challenged_date = None
+        days_since_last_challenge = None
+        
+        experiment = client.get_experiment_by_name("asteroid-hazard-classification")
+        if experiment:
+            recent_runs = client.search_runs(
+                experiment_ids=[experiment.experiment_id],
+                order_by=["start_time DESC"],
+                max_results=1,
+            )
+            if recent_runs and recent_runs[0].info.start_time:
+                recent_ts = datetime.datetime.fromtimestamp(recent_runs[0].info.start_time / 1000.0, tz=datetime.timezone.utc)
+                last_challenged_date = recent_ts.isoformat()
+                days_since_last_challenge = (now - recent_ts).days
+
         return ChampionMetricsResponse(
             version=mv.version,
             run_id=mv.run_id,
@@ -34,7 +59,12 @@ async def get_champion_metrics():
             f1=metrics.get("test_f1", metrics.get("f1")),
             roc_auc=metrics.get("test_roc_auc", metrics.get("roc_auc")),
             dvc_hash=params.get("data_dvc_hash", "—"),
-            model_name=MODEL_NAME
+            model_name=MODEL_NAME,
+            run_name=run.info.run_name,
+            trained_date=trained_date,
+            days_since_trained=days_since_trained,
+            last_challenged_date=last_challenged_date,
+            days_since_last_challenge=days_since_last_challenge
         )
     except Exception as e:
         logger.error(f"Failed to fetch champion metrics: {e}")
