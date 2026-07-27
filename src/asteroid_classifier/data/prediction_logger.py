@@ -7,6 +7,9 @@ logger = get_logger()
 # Global connection pool
 _db_pool = None
 
+def get_db_pool():
+    return _db_pool
+
 def init_db_pool(db_url: str) -> None:
     """Initialize the Postgres connection pool."""
     global _db_pool

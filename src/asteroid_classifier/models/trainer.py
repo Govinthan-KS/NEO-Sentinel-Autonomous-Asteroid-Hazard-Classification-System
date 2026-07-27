@@ -191,6 +191,7 @@ def train_single_model(
         run_id = run.info.run_id
         # Mark as a child run so the dashboard leaderboard can filter it cleanly
         mlflow.set_tag("run_type", "child")
+        mlflow.set_tag("run_environment", "github-actions" if os.getenv("GITHUB_ACTIONS") == "true" else "local")
 
         # Hardware snapshot — start
         mem_start = psutil.virtual_memory().used / (1024 ** 3)
@@ -620,6 +621,7 @@ def run_training_pipeline() -> None:
 
         with mlflow.start_run(run_name=parent_run_name) as parent_run:
             mlflow.set_tag("run_type", "parent")
+            mlflow.set_tag("run_environment", "github-actions" if os.getenv("GITHUB_ACTIONS") == "true" else "local")
             mlflow.set_tag("models_benchmarked", str(len(model_yaml_files)))
             mlflow.log_param("data_dvc_hash", get_dvc_hash())
 

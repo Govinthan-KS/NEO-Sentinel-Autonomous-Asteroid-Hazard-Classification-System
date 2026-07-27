@@ -31,3 +31,48 @@ class ExplainResponse(PredictionResponse):
 class ErrorResponse(BaseModel):
     error: str
     message: str
+
+class ChampionMetricsResponse(BaseModel):
+    version: str | None = None
+    run_id: str | None = None
+    recall: float | None = None
+    f1: float | None = None
+    roc_auc: float | None = None
+    dvc_hash: str | None = None
+    model_name: str | None = None
+
+class LeaderboardRun(BaseModel):
+    run_id: str
+    display_name: str
+    recall: float | None
+    precision: float | None
+    f1: float | None
+    roc_auc: float | None
+    run_date: str
+    is_champion: bool
+
+class DashboardSummaryResponse(BaseModel):
+    total_predictions: int
+    hazard_rate: float
+    anomaly_rate: float
+    current_model_run_id: str | None
+
+class RecentPrediction(BaseModel):
+    timestamp: str
+    absolute_magnitude_h: float | None
+    estimated_diameter_min_km: float | None
+    estimated_diameter_max_km: float | None
+    relative_velocity_kmph: float | None
+    miss_distance_km: float | None
+    orbiting_body: str | None
+    is_hazardous: bool | None
+    confidence: float | None
+    is_anomaly: bool | None
+    anomaly_score: float | None
+    model_run_id: str | None
+
+class TrendPoint(BaseModel):
+    date: str
+    total: int
+    hazardous: int
+    anomalies: int

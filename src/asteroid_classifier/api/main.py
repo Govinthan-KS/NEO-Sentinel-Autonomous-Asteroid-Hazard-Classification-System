@@ -25,13 +25,12 @@ try:
 except ImportError:
     pass
 
-import gradio as gr
 from asteroid_classifier.api.routes import router
+from asteroid_classifier.api.dashboard_routes import router as dashboard_router
 from asteroid_classifier.core.logging import get_logger
 from asteroid_classifier.core.config import get_config
 from asteroid_classifier.models.predictor import AsteroidPredictor
 from asteroid_classifier.core.exceptions import AsteroidPipelineError
-from asteroid_classifier.ui.gradio_app import build_ui
 from asteroid_classifier.utils.notifications import notify_health_issue
 from asteroid_classifier.monitoring.logger import initialize_parquet_schema
 from asteroid_classifier.data.prediction_logger import init_db_pool, close_db_pool
@@ -160,6 +159,7 @@ async def global_exception_handler(request: Request, exc: Exception):
     )
 
 app.include_router(router)
+app.include_router(dashboard_router, prefix="/dashboard")
 
 
 @app.get("/health", tags=["ops"])
@@ -167,16 +167,9 @@ async def health_check():
     """Liveness probe for the HuggingFace Spaces load balancer."""
     return {"status": "ok", "service": "NEO-Sentinel"}
 
-class PredictorWrapper:
-    """Wrapper to dynamically access the loaded predictor from app state within Gradio."""
-    def predict(self, features):
-        return app.state.predictor.predict(features)
+from fastapi.responses import RedirectResponse
 
-wrapper = PredictorWrapper()
-demo = build_ui(wrapper)
-
-# Mount Gradio at root / so HF Spaces load balancer finds the UI on port 7860.
-# FastAPI's own routes (/health, /predict, etc.) are matched first;
-# unmatched paths fall through to Gradio.
-app = gr.mount_gradio_app(app, demo, path="/")
+@app.get("/", include_in_schema=False)
+async def root():
+    return RedirectResponse(url="/docs")
 

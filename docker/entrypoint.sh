@@ -35,15 +35,10 @@ echo "[NEO-Sentinel] DAGSHUB_REPO_NAME=${DAGSHUB_REPO_NAME}"
 echo "[NEO-Sentinel] MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI}"
 
 # ---------------------------------------------------------------------------
-# 2. Streamlit Admin Observability Dashboard (background, port 8501)
+# 2. [REMOVED] Streamlit Admin Observability Dashboard
 # ---------------------------------------------------------------------------
-streamlit run /app/src/asteroid_classifier/ui/dashboard.py \
-    --server.port 8501 \
-    --server.headless true \
-    --server.address 0.0.0.0 &
-STREAMLIT_PID=$!
-echo "[NEO-Sentinel] Streamlit Admin Dashboard started (PID: ${STREAMLIT_PID}, port: 8501)."
-echo "[NEO-Sentinel] Note: port 8501 is not externally accessible on HF Spaces free tier."
+# Streamlit has been removed. Uvicorn handles all traffic on port 7860.
+
 
 # ---------------------------------------------------------------------------
 # 3. Uvicorn — Primary ASGI Server (foreground)
