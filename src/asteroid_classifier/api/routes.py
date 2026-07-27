@@ -6,6 +6,7 @@ import datetime
 from asteroid_classifier.api.schemas import AsteroidFeatures, PredictionResponse, ExplainResponse
 from asteroid_classifier.core.logging import get_logger
 from asteroid_classifier.utils.notifications import notify_high_hazard
+from asteroid_classifier.data.prediction_logger import log_prediction
 
 router = APIRouter()
 logger = get_logger()
@@ -69,6 +70,10 @@ async def predict(request: Request, features: AsteroidFeatures, background_tasks
     timestamp = datetime.datetime.utcnow().isoformat()
     model_version = getattr(predictor, "model_uri", "unknown")
     background_tasks.add_task(_append_to_parquet, features.model_dump(), model_version, res.confidence, timestamp)
+    
+    # ── Database Logging ──
+    db_run_id = getattr(predictor, "run_id", "unknown")
+    background_tasks.add_task(log_prediction, features.model_dump(), res, db_run_id)
 
     return response
 

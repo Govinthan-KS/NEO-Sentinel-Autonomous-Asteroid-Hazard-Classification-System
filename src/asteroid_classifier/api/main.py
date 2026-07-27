@@ -34,6 +34,7 @@ from asteroid_classifier.core.exceptions import AsteroidPipelineError
 from asteroid_classifier.ui.gradio_app import build_ui
 from asteroid_classifier.utils.notifications import notify_health_issue
 from asteroid_classifier.monitoring.logger import initialize_parquet_schema
+from asteroid_classifier.data.prediction_logger import init_db_pool, close_db_pool
 
 logger = get_logger()
 
@@ -111,9 +112,15 @@ async def lifespan(app: FastAPI):
     logger.info(f"[NEO-Sentinel] Loading model from registry: {model_uri}")
     app.state.predictor = AsteroidPredictor(model_uri=model_uri)
     logger.info("[NEO-Sentinel] API is ready to accept traffic.")
+    
+    # ── Step 3: Initialize Postgres connection pool ─────────────────────────
+    db_url = os.getenv("DATABASE_URL")
+    init_db_pool(db_url)
+    
     yield
     # Shutdown
     logger.info("[NEO-Sentinel] Shutting down API...")
+    close_db_pool()
 
 app = FastAPI(title="Asteroid Hazard Classifier", lifespan=lifespan)
 

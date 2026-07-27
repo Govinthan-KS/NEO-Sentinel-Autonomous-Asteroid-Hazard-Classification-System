@@ -32,7 +32,8 @@ dependencies = [
     "pyarrow (>=19.0.0,<20.0.0)",
     "dvc (>=3.67.1,<4.0.0)",
     "shap (>=0.45.0,<1.0.0)",
-    "matplotlib (>=3.8.0,<4.0.0)"
+    "matplotlib (>=3.8.0,<4.0.0)",
+    "psycopg2-binary (>=2.9.0,<3.0.0)"
 ]
 
 [tool.poetry]

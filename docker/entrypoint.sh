@@ -16,7 +16,7 @@ set -e
 # ---------------------------------------------------------------------------
 # 1. Required Environment Variable Validation
 # ---------------------------------------------------------------------------
-REQUIRED_VARS="NASA_API_KEY DAGSHUB_TOKEN MLFLOW_TRACKING_URI DAGSHUB_REPO_OWNER DAGSHUB_REPO_NAME"
+REQUIRED_VARS="NASA_API_KEY DAGSHUB_TOKEN MLFLOW_TRACKING_URI DAGSHUB_REPO_OWNER DAGSHUB_REPO_NAME DATABASE_URL"
 
 echo "[NEO-Sentinel] Validating required environment variables..."
 

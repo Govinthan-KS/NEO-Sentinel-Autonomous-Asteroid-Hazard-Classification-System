@@ -33,9 +33,15 @@ class AsteroidPredictor:
             self.logger.info("[NEO-Sentinel] Model loaded successfully.")
             
             try:
-                champion_run_id = self.model.metadata.run_id
-                if champion_run_id:
-                    anomaly_uri = f"runs:/{champion_run_id}/anomaly_detector"
+                champion_run_id = getattr(self.model.metadata, "run_id", None)
+                self.run_id = champion_run_id
+            except Exception as e:
+                self.run_id = None
+                self.logger.warning(f"[NEO-Sentinel] Could not extract run_id from champion model: {e}")
+                
+            try:
+                if self.run_id:
+                    anomaly_uri = f"runs:/{self.run_id}/anomaly_detector"
                     self.logger.info(f"[NEO-Sentinel] Attempting to load anomaly detector from {anomaly_uri}")
                     self.anomaly_detector = mlflow.sklearn.load_model(anomaly_uri)
             except Exception as e:
