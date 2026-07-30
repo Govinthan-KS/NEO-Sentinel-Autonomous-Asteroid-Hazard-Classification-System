@@ -62,3 +62,6 @@ SETUP.md
 
 # Temporary testing scripts
 scripts/temp_scripts/
+# HTML Prototypes
+*.dc.html
+Earth-Asteroids-.jpg

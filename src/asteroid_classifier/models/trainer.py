@@ -397,10 +397,12 @@ def _do_promote(
                 X_train_transformed = preprocessor.transform(X_train)
                 contamination = training_config.get("anomaly_detector", {}).get("contamination", 0.05)
                 from sklearn.ensemble import IsolationForest
+                import mlflow
                 import mlflow.sklearn
                 iso_forest = IsolationForest(contamination=contamination, random_state=42)
                 iso_forest.fit(X_train_transformed)
-                mlflow.sklearn.log_model(iso_forest, "anomaly_detector")
+                with mlflow.start_run(run_id=best["run_id"]):
+                    mlflow.sklearn.log_model(iso_forest, "anomaly_detector")
                 logger.info("[NEO-Sentinel] Isolation Forest anomaly detector trained and logged.")
             else:
                 logger.warning("[NEO-Sentinel] Could not extract preprocessor; skipping Isolation Forest.")

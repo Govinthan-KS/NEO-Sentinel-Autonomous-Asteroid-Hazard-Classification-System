@@ -41,9 +41,14 @@ class AsteroidPredictor:
                 
             try:
                 if self.run_id:
-                    anomaly_uri = f"runs:/{self.run_id}/anomaly_detector"
-                    self.logger.info(f"[NEO-Sentinel] Attempting to load anomaly detector from {anomaly_uri}")
-                    self.anomaly_detector = mlflow.sklearn.load_model(anomaly_uri)
+                    client = mlflow.MlflowClient()
+                    artifacts = [a.path for a in client.list_artifacts(self.run_id)]
+                    if "anomaly_detector" in artifacts:
+                        anomaly_uri = f"runs:/{self.run_id}/anomaly_detector"
+                        self.logger.info(f"[NEO-Sentinel] Attempting to load anomaly detector from {anomaly_uri}")
+                        self.anomaly_detector = mlflow.sklearn.load_model(anomaly_uri)
+                    else:
+                        self.logger.info(f"[NEO-Sentinel] No 'anomaly_detector' artifact found in run {self.run_id}. Skipping load.")
             except Exception as e:
                 self.logger.warning(f"[NEO-Sentinel] Could not load anomaly detector: {e}")
             
@@ -129,7 +134,10 @@ class AsteroidPredictor:
             confidence = res.confidence
             
             # 2. Extract pipeline and transform input data for the explainer
-            pipeline = self.model._model_impl
+            pipeline = getattr(self.model, '_model_impl', None)
+            if hasattr(pipeline, "sklearn_model"):
+                pipeline = pipeline.sklearn_model
+                
             preprocessor = pipeline.named_steps.get("preprocessor")
             
             df = pd.DataFrame([features_dict])

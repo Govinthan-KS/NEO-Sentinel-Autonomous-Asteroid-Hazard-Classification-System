@@ -48,7 +48,7 @@ def _fetch_chunk(
     """
     Fetches a single 7-day (or smaller) chunk from the NASA NeoWs API.
     Returns the raw near_earth_objects dict keyed by date string.
-    Raises DataIngestionError on HTTP failure.
+    Raises DataIngestionError on HTTP failure after retries.
     """
     logger.info(
         f"[NEO-Sentinel] Fetching chunk {chunk_index}/{total_chunks}: "
@@ -59,22 +59,34 @@ def _fetch_chunk(
         "end_date": chunk_end,
         "api_key": api_key,
     }
-    try:
-        response = requests.get(api_url, params=params, timeout=timeout)
-        response.raise_for_status()
-    except requests.exceptions.RequestException as exc:
-        raise DataIngestionError(
-            f"[NEO-Sentinel] NASA API request failed for chunk "
-            f"{chunk_start}→{chunk_end}: {exc}"
-        )
-
-    data = response.json()
-    element_count = data.get("element_count", 0)
-    logger.info(
-        f"[NEO-Sentinel] Chunk {chunk_index}/{total_chunks} returned "
-        f"{element_count} objects."
-    )
-    return data.get("near_earth_objects", {})
+    
+    max_retries = 5
+    for attempt in range(1, max_retries + 1):
+        try:
+            response = requests.get(api_url, params=params, timeout=timeout)
+            response.raise_for_status()
+            
+            data = response.json()
+            element_count = data.get("element_count", 0)
+            logger.info(
+                f"[NEO-Sentinel] Chunk {chunk_index}/{total_chunks} returned "
+                f"{element_count} objects."
+            )
+            return data.get("near_earth_objects", {})
+            
+        except requests.exceptions.RequestException as exc:
+            if attempt == max_retries:
+                raise DataIngestionError(
+                    f"[NEO-Sentinel] NASA API request failed for chunk "
+                    f"{chunk_start}→{chunk_end} after {max_retries} attempts: {exc}"
+                )
+            
+            backoff = 2 ** attempt
+            logger.warning(
+                f"[NEO-Sentinel] NASA API error on chunk {chunk_index}/{total_chunks}. "
+                f"Attempt {attempt}/{max_retries} failed. Retrying in {backoff}s... Error: {exc}"
+            )
+            time.sleep(backoff)
 
 
 def _flatten_neo(neo: dict) -> Optional[dict]:

@@ -1,0 +1,33 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@config "../tailwind.config.js";
+
+@layer base {
+  :root {
+    --background: #05070d;
+    --foreground: #eef3ff;
+
+    --primary: #5ac8fa;
+    --primary-bright: #8fe0ff;
+    
+    --accent-lime: #a3e635;
+    --accent-bright: #c4f042;
+    
+    --hazard-red: #ff5470;
+    --anomaly-amber: #ffb454;
+    
+    --muted: #5c6f94;
+    --muted-secondary: #8fa3c8;
+    
+    --text-secondary: #a9b8d9;
+    --text-primary: #eef3ff;
+
+    --radius: 0.5rem;
+  }
+}
+
+@layer base {
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+}
