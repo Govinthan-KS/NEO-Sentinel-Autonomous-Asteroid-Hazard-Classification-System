@@ -161,7 +161,7 @@ export function Predict() {
                 />
               </label>
               <label className="flex flex-col gap-1.5">
-                <span className="text-xs text-muted-secondary">Est. Diameter Min (km)</span>
+                <span className="text-xs text-muted-secondary">Estimated Diameter Min (km)</span>
                 <NumberInput 
                   step={0.001} 
                   value={form.estimated_diameter_min_km} 
@@ -169,7 +169,7 @@ export function Predict() {
                 />
               </label>
               <label className="flex flex-col gap-1.5">
-                <span className="text-xs text-muted-secondary">Est. Diameter Max (km)</span>
+                <span className="text-xs text-muted-secondary">Estimated Diameter Max (km)</span>
                 <NumberInput 
                   step={0.001} 
                   value={form.estimated_diameter_max_km} 
@@ -298,7 +298,9 @@ export function Predict() {
                     <h3 className="text-base font-bold m-0 text-[#eef3ff]">SHAP Feature Contributions</h3>
                     <span className="font-mono text-[11px] text-[#c7d3ee]">← toward hazardous · toward safe →</span>
                   </div>
-                  <p className="text-[13px] text-[#c7d3ee] m-0 mb-6">Signed contribution of each input feature to the final hazard score.</p>
+                  <p className="text-[13px] text-[#c7d3ee] m-0 mb-6">
+                    Values represent the log-odds impact of each feature. Positive scores drive the model toward a SAFE verdict, while negative scores drive it toward a HAZARDOUS verdict.
+                  </p>
                   
                   {explanations && (
                     <ShapBars features={explanations.sort((a, b) => Math.abs(b.value) - Math.abs(a.value))} />

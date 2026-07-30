@@ -519,11 +519,11 @@ export function Dashboard() {
                       <thead>
                         <tr className="border-b border-[rgba(150,190,255,0.15)]">
                           <th className="p-2.5 text-[11px] text-[#c7d3ee] tracking-[0.06em] uppercase">Timestamp</th>
-                          <th className="p-2.5 text-[11px] text-[#c7d3ee] tracking-[0.06em] uppercase">Diam Avg</th>
-                          <th className="p-2.5 text-[11px] text-[#c7d3ee] tracking-[0.06em] uppercase text-right">Vel (km/h)</th>
-                          <th className="p-2.5 text-[11px] text-[#c7d3ee] tracking-[0.06em] uppercase text-right">Miss (km)</th>
+                          <th className="p-2.5 text-[11px] text-[#c7d3ee] tracking-[0.06em] uppercase">Diameter Avg</th>
+                          <th className="p-2.5 text-[11px] text-[#c7d3ee] tracking-[0.06em] uppercase text-right">Velocity (km/h)</th>
+                          <th className="p-2.5 text-[11px] text-[#c7d3ee] tracking-[0.06em] uppercase text-right">Miss Distance (km)</th>
                           <th className="p-2.5 text-[11px] text-[#c7d3ee] tracking-[0.06em] uppercase text-center">Verdict</th>
-                          <th className="p-2.5 text-[11px] text-[#c7d3ee] tracking-[0.06em] uppercase text-right">Conf</th>
+                          <th className="p-2.5 text-[11px] text-[#c7d3ee] tracking-[0.06em] uppercase text-right">Confidence</th>
                           <th className="p-2.5 text-[11px] text-[#c7d3ee] tracking-[0.06em] uppercase text-center">Anomaly</th>
                         </tr>
                       </thead>

@@ -5,7 +5,7 @@ import os
 import datetime
 from asteroid_classifier.api.schemas import AsteroidFeatures, PredictionResponse, ExplainResponse
 from asteroid_classifier.core.logging import get_logger
-from asteroid_classifier.utils.notifications import notify_high_hazard
+
 from asteroid_classifier.data.prediction_logger import log_prediction
 
 router = APIRouter()
@@ -60,12 +60,7 @@ async def predict(request: Request, features: AsteroidFeatures, background_tasks
     )
     logger.info(f"Returning prediction: is_hazardous={res.is_hazardous}, confidence={res.confidence:.4f}")
 
-    if res.confidence > 0.90:
-        try:
-            notify_high_hazard(res.confidence, features.model_dump())
-        except Exception as e:
-            logger.error(f"Failed to send Discord alert synchronously: {e}")
-            raise HTTPException(status_code=500, detail=str(e))
+
 
     timestamp = datetime.datetime.utcnow().isoformat()
     model_version = getattr(predictor, "model_uri", "unknown")

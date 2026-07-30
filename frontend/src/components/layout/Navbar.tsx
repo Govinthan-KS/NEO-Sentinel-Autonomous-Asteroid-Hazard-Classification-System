@@ -24,6 +24,12 @@ export function Navbar() {
           Home
         </Link>
         <Link 
+          to="/about" 
+          className={cn("text-sm font-semibold transition-colors hover:text-primary-bright", location.pathname === "/about" ? "text-text-primary" : "text-muted-secondary")}
+        >
+          About
+        </Link>
+        <Link 
           to="/predict" 
           className={cn("text-sm font-semibold transition-colors hover:text-primary-bright", location.pathname === "/predict" ? "text-text-primary" : "text-muted-secondary")}
         >

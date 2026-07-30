@@ -31,7 +31,7 @@ from asteroid_classifier.core.logging import get_logger
 from asteroid_classifier.core.config import get_config
 from asteroid_classifier.models.predictor import AsteroidPredictor
 from asteroid_classifier.core.exceptions import AsteroidPipelineError
-from asteroid_classifier.utils.notifications import notify_health_issue
+
 from asteroid_classifier.monitoring.logger import initialize_parquet_schema
 from asteroid_classifier.data.prediction_logger import init_db_pool, close_db_pool
 
@@ -91,11 +91,6 @@ def _bootstrap_dagshub() -> None:
 async def lifespan(app: FastAPI):
     logger.info("[NEO-Sentinel] Initializing API Lifespan...")
 
-    webhook = os.getenv("DISCORD_WEBHOOK_URL", "")
-    if not webhook:
-        logger.critical("[NEO-Sentinel] DISCORD_WEBHOOK_URL is empty!")
-    else:
-        logger.info("[NEO-Sentinel] Discord webhook loaded successfully.")
 
     # ── Step 1: headless auth — must run before any MLflow/DagsHub call ──
     _bootstrap_dagshub()
@@ -150,8 +145,6 @@ async def global_exception_handler(request: Request, exc: Exception):
     status_code = 500
     if isinstance(exc, AsteroidPipelineError):
         status_code = 400
-    else:
-        notify_health_issue(type(exc).__name__, str(exc))
         
     return JSONResponse(
         status_code=status_code,

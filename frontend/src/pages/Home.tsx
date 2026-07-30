@@ -1,12 +1,14 @@
+
 import { Link } from 'react-router-dom';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { AnimatedBackground } from '@/components/layout/AnimatedBackground';
 import { RadarSweep } from '@/components/ui/RadarSweep';
-import { ArchitectureVisual } from '@/components/ui/ArchitectureVisual';
+
 import { GlassCard } from '@/components/ui/GlassCard';
 
 export function Home() {
+
   return (
     <div className="relative min-h-screen flex flex-col">
       <AnimatedBackground />
@@ -14,7 +16,7 @@ export function Home() {
 
       <main className="flex-grow relative z-10">
         {/* Hero Section */}
-        <section className="max-w-[1240px] mx-auto px-10 pt-[100px] pb-[80px] grid grid-cols-[1.15fr_0.85fr] gap-[60px] items-center">
+        <section className="max-w-[1240px] mx-auto px-10 pt-[50px] pb-[80px] grid grid-cols-[1.15fr_0.85fr] gap-[60px] items-center">
           <div>
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[rgba(163,230,53,0.08)] border border-[rgba(163,230,53,0.28)] font-mono text-[11px] tracking-[0.1em] text-accent-bright mb-6">
               <span className="w-1.5 h-1.5 rounded-full bg-accent-bright shadow-[0_0_8px_var(--accent-lime)]"></span>
@@ -26,31 +28,45 @@ export function Home() {
             <p className="text-[17px] leading-[1.65] text-text-secondary max-w-[520px] mb-9">
               NEO-Sentinel combines a multi-model ensemble with explainable AI and anomaly detection to flag Potentially Hazardous Asteroids — with the reasoning behind every call, not just a verdict.
             </p>
-            <div className="flex gap-3.5 mb-11">
-              <Link to="/predict" className="inline-flex items-center gap-2.5 px-6 py-3.5 rounded-xl bg-gradient-to-br from-[rgba(90,200,250,0.22)] to-[rgba(163,230,53,0.16)] border border-[rgba(150,190,255,0.35)] shadow-[0_0_30px_rgba(90,200,250,0.15),inset_0_1px_0_rgba(255,255,255,0.1)] text-text-primary font-semibold text-[15px] hover:scale-[1.02] transition-transform">
-                Classify an Asteroid →
+            <div className="flex gap-4 mb-11">
+              <Link to="/predict" className="group relative inline-flex items-center gap-2.5 px-7 py-3.5 rounded-full bg-gradient-to-r from-primary to-accent-lime p-[1px] shadow-[0_0_20px_rgba(163,230,53,0.15)] hover:shadow-[0_0_30px_rgba(163,230,53,0.3)] transition-all overflow-hidden">
+                <span className="absolute inset-0 bg-background rounded-full transition-colors group-hover:bg-transparent"></span>
+                <span className="relative z-10 flex items-center gap-2 text-text-primary font-semibold text-[15px] group-hover:text-[#05070d] transition-colors">
+                  Classify an Asteroid
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="group-hover:translate-x-1 transition-transform">
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                    <polyline points="12 5 19 12 12 19"></polyline>
+                  </svg>
+                </span>
               </Link>
-              <Link to="/dashboard" className="inline-flex items-center px-6 py-3.5 rounded-xl border border-[rgba(150,190,255,0.18)] text-[#c7d3ee] font-semibold text-[15px] hover:bg-[rgba(150,190,255,0.05)] transition-colors">
+              <Link to="/dashboard" className="inline-flex items-center px-7 py-3.5 rounded-full border border-[rgba(150,190,255,0.2)] text-[#eef3ff] font-semibold text-[15px] bg-[rgba(150,190,255,0.03)] hover:bg-[rgba(150,190,255,0.08)] hover:border-[rgba(150,190,255,0.4)] transition-all shadow-[0_0_15px_rgba(150,190,255,0.0)] hover:shadow-[0_0_20px_rgba(150,190,255,0.15)]">
                 View Live Dashboard
               </Link>
             </div>
             
-            <GlassCard className="flex gap-7 px-6 py-5 w-fit">
-              <div>
-                <div className="font-mono text-[22px] font-semibold text-primary-bright">128,940</div>
-                <div className="text-[11px] text-muted tracking-[0.06em] uppercase mt-0.5">predictions served</div>
+            {/* Tech Stack / Powered By Section */}
+            <div className="mt-8 flex flex-col gap-3">
+              <div className="text-[11px] text-muted tracking-[0.1em] uppercase font-semibold">
+                Powered By
               </div>
-              <div className="w-px bg-[rgba(150,190,255,0.14)]"></div>
-              <div>
-                <div className="font-mono text-[22px] font-semibold text-accent-bright">6.4%</div>
-                <div className="text-[11px] text-muted tracking-[0.06em] uppercase mt-0.5">hazard rate</div>
+              <div className="flex flex-wrap gap-3">
+                <span className="inline-flex items-center px-3 py-1.5 rounded-md bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.08)] text-text-secondary text-xs font-mono">
+                  NASA NeoWs API
+                </span>
+                <span className="inline-flex items-center px-3 py-1.5 rounded-md bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.08)] text-text-secondary text-xs font-mono">
+                  MLflow
+                </span>
+                <span className="inline-flex items-center px-3 py-1.5 rounded-md bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.08)] text-text-secondary text-xs font-mono">
+                  DVC
+                </span>
+                <span className="inline-flex items-center px-3 py-1.5 rounded-md bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.08)] text-text-secondary text-xs font-mono">
+                  FastAPI
+                </span>
+                <span className="inline-flex items-center px-3 py-1.5 rounded-md bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.08)] text-text-secondary text-xs font-mono">
+                  React
+                </span>
               </div>
-              <div className="w-px bg-[rgba(150,190,255,0.14)]"></div>
-              <div>
-                <div className="font-mono text-[22px] font-semibold text-text-primary">99.2%</div>
-                <div className="text-[11px] text-muted tracking-[0.06em] uppercase mt-0.5">champion recall</div>
-              </div>
-            </GlassCard>
+            </div>
           </div>
 
           <div className="relative w-full">
@@ -62,7 +78,7 @@ export function Home() {
         <section className="max-w-[1240px] mx-auto px-10 py-10 pb-[90px]">
           <div className="flex items-baseline justify-between mb-9">
             <h2 className="text-[26px] font-bold m-0">What it does</h2>
-            <span className="font-mono text-xs text-muted tracking-[0.08em]">ML · XAI · ANOMALY DETECTION</span>
+            <span className="inline-block px-3 py-1 rounded-full bg-[rgba(150,190,255,0.1)] border border-[rgba(150,190,255,0.25)] text-[#eef3ff] font-mono text-xs tracking-[0.08em]">ML · XAI · ANOMALY DETECTION</span>
           </div>
           <div className="grid grid-cols-3 gap-5.5 gap-[22px]">
             <GlassCard className="p-7">
@@ -83,9 +99,15 @@ export function Home() {
           </div>
         </section>
 
-        {/* Architecture Visual Section */}
-        <section className="max-w-[1240px] mx-auto px-10 pb-[100px]">
-          <ArchitectureVisual />
+        {/* Architecture CTA */}
+        <section className="max-w-[1240px] mx-auto px-10 pb-[100px] flex justify-center">
+          <Link to="/about" className="group relative flex items-center justify-center gap-3 px-8 py-4 bg-[rgba(150,190,255,0.05)] border border-[rgba(150,190,255,0.2)] rounded-full hover:bg-[rgba(150,190,255,0.1)] transition-all">
+            <span className="font-mono text-sm tracking-widest text-[#eef3ff] uppercase font-semibold">View Full Architecture</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary-bright group-hover:translate-x-1 transition-transform">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </Link>
         </section>
 
         {/* Research Paper Citation */}
