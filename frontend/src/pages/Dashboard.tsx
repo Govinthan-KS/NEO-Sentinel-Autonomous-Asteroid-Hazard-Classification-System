@@ -223,20 +223,20 @@ export function Dashboard() {
               <GlassCard className="p-5.5 px-6 py-5 border-[rgba(150,190,255,0.16)]">
                 <div className="text-[11px] text-[#c7d3ee] tracking-[0.06em] uppercase mb-2">Predictions Served</div>
                 <div className="font-mono text-[26px] font-semibold text-text-primary">
-                  {((summary?.total_predictions ?? 0) + 128940).toLocaleString()}
+                  {summary?.total_predictions?.toLocaleString() ?? 0}
                 </div>
               </GlassCard>
               <GlassCard className="p-5.5 px-6 py-5 border-[rgba(150,190,255,0.16)]">
                 <div className="text-[11px] text-[#c7d3ee] tracking-[0.06em] uppercase mb-2">Hazard Rate</div>
                 <div className="font-mono text-[26px] font-semibold text-hazard-red">
-                  {summary?.total_predictions ? (summary.hazard_rate * 100).toFixed(1) : "11.2"}%
+                  {summary?.hazard_rate != null ? (summary.hazard_rate * 100).toFixed(1) : 0}%
                 </div>
                 <div className="text-[12px] text-[#8fa3c8] mt-1.5">Across recent data</div>
               </GlassCard>
               <GlassCard className="p-5.5 px-6 py-5 border-[rgba(150,190,255,0.16)]">
                 <div className="text-[11px] text-[#c7d3ee] tracking-[0.06em] uppercase mb-2">Anomaly Rate</div>
                 <div className="font-mono text-[26px] font-semibold text-anomaly-amber">
-                  {summary?.total_predictions ? (summary.anomaly_rate * 100).toFixed(1) : "4.1"}%
+                  {summary?.anomaly_rate != null ? (summary.anomaly_rate * 100).toFixed(1) : 0}%
                 </div>
                 <div className="text-[12px] text-[#8fa3c8] mt-1.5">Across recent data</div>
               </GlassCard>
