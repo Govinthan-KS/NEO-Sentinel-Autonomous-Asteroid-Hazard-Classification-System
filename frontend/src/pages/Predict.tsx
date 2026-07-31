@@ -288,7 +288,7 @@ export function Predict() {
                     </span>
                   </div>
                   <div className="font-mono text-[13px] text-[#c7d3ee]">
-                    score {prediction.anomalyScore != null ? prediction.anomalyScore.toFixed(3) : 'N/A'}
+                    score {prediction.anomalyScore != null ? (prediction.anomalyScore > 0 ? '+' : '') + prediction.anomalyScore.toFixed(3) : 'N/A'}
                   </div>
                 </div>
 

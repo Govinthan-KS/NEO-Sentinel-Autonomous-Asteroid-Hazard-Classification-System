@@ -107,7 +107,7 @@ class AsteroidPredictor:
                     transformed_features = preprocessor.transform(df)
                     iso_pred = self.anomaly_detector.predict(transformed_features)[0]
                     is_anomaly = bool(iso_pred == -1)
-                    anomaly_score = float(self.anomaly_detector.score_samples(transformed_features)[0])
+                    anomaly_score = float(self.anomaly_detector.decision_function(transformed_features)[0])
             
             self.logger.info(f"Made prediction: {pred_val} with confidence: {confidence:.2f}, anomaly: {is_anomaly}")
             return PredictionResult(

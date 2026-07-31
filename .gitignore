@@ -65,3 +65,4 @@ scripts/temp_scripts/
 # HTML Prototypes
 *.dc.html
 Earth-Asteroids-.jpg
+supabase_logs.csv
