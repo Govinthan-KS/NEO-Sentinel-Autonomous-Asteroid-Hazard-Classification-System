@@ -152,7 +152,7 @@ jobs:
           git remote add dagshub https://${{ vars.DAGSHUB_REPO_OWNER }}:${{ secrets.DAGSHUB_TOKEN }}@dagshub.com/${{ vars.DAGSHUB_REPO_OWNER }}/${{ vars.DAGSHUB_REPO_NAME }}.git > /dev/null 2>&1
           
           # Push to DagsHub (mirror for lineage UI)
-          GIT_LFS_SKIP_PUSH=1 git push dagshub HEAD:${GITHUB_REF_NAME:-main}
+          GIT_LFS_SKIP_PUSH=1 git push --force dagshub HEAD:${GITHUB_REF_NAME:-main}
 
       # ── Step 2: Train + Benchmark + Promote (all in trainer.py) ──────────
       - name: "Step 2 \u2014 Multi-model benchmarking"
