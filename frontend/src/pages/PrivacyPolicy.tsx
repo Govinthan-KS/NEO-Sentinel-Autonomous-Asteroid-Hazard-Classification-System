@@ -22,27 +22,35 @@ export function PrivacyPolicy() {
             
             <h2 className="text-xl font-bold text-[#eef3ff] mt-8 mb-4">1. Information We Collect</h2>
             <p>
-              NEO-Sentinel is an academic and research-oriented open-source project. We do not require users to create accounts, and we do not collect personal identifiable information (PII) such as names, email addresses, or physical locations during standard browsing of the dashboard.
+              NEO-Sentinel is an academic and research-oriented open-source project. We do not require users to create accounts, and we do not collect personal identifiable information (PII) such as names, email addresses, or physical locations during standard browsing of the dashboard. Any telemetry collected is strictly non-identifiable.
             </p>
 
-            <h2 className="text-xl font-bold text-[#eef3ff] mt-8 mb-4">2. Telemetry and Analytics</h2>
+            <h2 className="text-xl font-bold text-[#eef3ff] mt-8 mb-4">2. Telemetry, Analytics, and Data Retention</h2>
             <p>
-              When utilizing the public API endpoints or the dashboard, standard web server logs (such as IP addresses and browser user-agent strings) may be temporarily captured for security, rate-limiting, and diagnostic purposes. We do not use third-party tracking scripts or advertising cookies.
+              When utilizing the public API endpoints or the dashboard, standard web server logs (such as IP addresses, access timestamps, and browser user-agent strings) are temporarily captured for security, rate-limiting, and diagnostic purposes. 
             </p>
+            <ul className="list-disc pl-5 mt-2 space-y-1">
+              <li><strong>Retention Limits:</strong> Server logs and telemetry data are automatically purged after 30 days.</li>
+              <li><strong>No Third-Party Tracking:</strong> We do not use third-party tracking scripts, advertising cookies, or behavioral profiling.</li>
+            </ul>
 
-            <h2 className="text-xl font-bold text-[#eef3ff] mt-8 mb-4">3. External Data Sources</h2>
+            <h2 className="text-xl font-bold text-[#eef3ff] mt-8 mb-4">3. External Data Sources and User Inputs</h2>
             <p>
-              This application interfaces directly with the NASA Near Earth Object Web Service (NeoWs) API. User inputs submitted via the "Predict" page to simulate asteroid parameters are processed locally or via our backend models, but are not permanently retained unless explicitly stated.
+              This application interfaces directly with the NASA Near Earth Object Web Service (NeoWs) API. User inputs submitted via the "Predict" page to simulate asteroid parameters are processed securely in-memory.
             </p>
+            <ul className="list-disc pl-5 mt-2 space-y-1">
+              <li><strong>Input Volatility:</strong> Simulation inputs are discarded immediately after the prediction is returned and are not stored in any persistent database.</li>
+              <li><strong>Malicious Payloads:</strong> Submission of malicious payloads (e.g., SQL injections, XSS attempts) may result in automatic IP blacklisting.</li>
+            </ul>
 
             <h2 className="text-xl font-bold text-[#eef3ff] mt-8 mb-4">4. Open Source and Contributions</h2>
             <p>
-              Code contributions, issues, and pull requests submitted to the GitHub repository are subject to GitHub's Privacy Policy. Any data committed to the public repository becomes publicly accessible.
+              Code contributions, issues, and pull requests submitted to the GitHub repository are subject to GitHub's Privacy Policy. Any data, including code snippets or personal information voluntarily included in public commits or issue tickets, becomes publicly accessible. We are not responsible for the privacy of data you choose to make public via contributions.
             </p>
 
-            <h2 className="text-xl font-bold text-[#eef3ff] mt-8 mb-4">5. Contact</h2>
+            <h2 className="text-xl font-bold text-[#eef3ff] mt-8 mb-4">5. Contact and Data Rights</h2>
             <p>
-              If you have any questions regarding this Privacy Policy or the academic use of this tool, please open an issue in the project's GitHub repository.
+              If you have any questions regarding this Privacy Policy or wish to request the removal of any inadvertently collected data (such as public issue comments), please open an issue in the project's GitHub repository or contact the repository maintainer directly.
             </p>
           </div>
         </div>

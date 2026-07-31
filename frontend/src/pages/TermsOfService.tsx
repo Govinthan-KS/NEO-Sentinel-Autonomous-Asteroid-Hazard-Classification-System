@@ -32,19 +32,24 @@ export function TermsOfService() {
               The software is provided "AS IS", without warranty of any kind, express or implied.
             </p>
 
-            <h2 className="text-xl font-bold text-[#eef3ff] mt-8 mb-4">3. Fair Use of API</h2>
+            <h2 className="text-xl font-bold text-[#eef3ff] mt-8 mb-4">3. Fair Use, API Abuse, and Scraping</h2>
             <p>
-              If you utilize the FastAPI serving endpoints associated with NEO-Sentinel, you agree to do so responsibly. Do not intentionally overload the API or attempt to bypass any rate limiting or authentication guardrails (if applicable) set in place to protect the server infrastructure.
+              If you utilize the FastAPI serving endpoints associated with NEO-Sentinel, you agree to do so responsibly. The following behaviors are strictly prohibited and may result in a permanent IP ban:
             </p>
+            <ul className="list-disc pl-5 mt-2 space-y-1">
+              <li><strong>Rate Limits:</strong> Exceeding the stated rate limits or attempting to bypass rate limiting controls.</li>
+              <li><strong>Automated Scraping:</strong> Mass scraping of prediction endpoints or dashboard data without prior written authorization.</li>
+              <li><strong>Denial of Service:</strong> Intentionally submitting malformed payloads or overwhelmingly large concurrent requests designed to degrade server performance.</li>
+            </ul>
 
             <h2 className="text-xl font-bold text-[#eef3ff] mt-8 mb-4">4. Intellectual Property</h2>
             <p>
               The source code of NEO-Sentinel is open-source. The telemetry data ingested by this application is the intellectual property of the NASA Jet Propulsion Laboratory (JPL) Center for Near Earth Object Studies (CNEOS). We claim no ownership over the raw NASA NeoWs datasets.
             </p>
 
-            <h2 className="text-xl font-bold text-[#eef3ff] mt-8 mb-4">5. Modifications to Service</h2>
+            <h2 className="text-xl font-bold text-[#eef3ff] mt-8 mb-4">5. Service Availability and Modifications</h2>
             <p>
-              We reserve the right to modify, suspend, or discontinue the service (or any part thereof) at any time, with or without notice, particularly concerning model registry resets or infrastructure changes on the hosted platform.
+              We provide no Service Level Agreement (SLA) for uptime. We reserve the right to modify, suspend, or discontinue the service (or any part thereof) at any time, with or without notice, particularly concerning model registry resets, maintenance windows, or infrastructure changes on the hosted platform.
             </p>
           </div>
         </div>
