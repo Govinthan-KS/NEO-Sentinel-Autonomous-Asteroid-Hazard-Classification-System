@@ -47,32 +47,40 @@ The frontend is a beautifully designed, responsive React + Vite application (dep
 
 ```mermaid
 flowchart TD
-    A([NASA NeoWs API]) -->|Daily pull + Retries| B[Data Ingestion\ningestion.py]
-    B -->|Raw CSV| C{Data Validation\nGreat Expectations}
-    C -->|❌ Fail| D([Pipeline halts\nERROR logged])
-    C -->|✅ Pass| E[DVC Versioning\nPush to DagsHub]
-    E -->|Content hash| F[Multi-Model Training\ntrainer.py]
+    %% Styling Classes
+    classDef external fill:#0f172a,stroke:#3b82f6,stroke-width:2px,color:#fff
+    classDef process fill:#1e1b4b,stroke:#8b5cf6,stroke-width:2px,color:#fff
+    classDef storage fill:#064e3b,stroke:#10b981,stroke-width:2px,color:#fff
+    classDef model fill:#4c1d95,stroke:#c4b5fd,stroke-width:2px,color:#fff
+    classDef error fill:#7f1d1d,stroke:#fca5a5,stroke-width:2px,color:#fff
+    classDef frontend fill:#000000,stroke:#eef3ff,stroke-width:2px,color:#fff
 
-    F --> G[LightGBM]
-    F --> H[Random Forest]
-    F --> I[XGBoost]
-    F --> I2[Isolation Forest\nAnomaly Detection]
+    A([NASA NeoWs API]):::external -->|Daily pull + Retries| B[Data Ingestion\ningestion.py]:::process
+    B -->|Raw CSV| C{Data Validation\nGreat Expectations}:::process
+    C -->|❌ Fail| D([Pipeline halts\nERROR logged]):::error
+    C -->|✅ Pass| E[DVC Versioning\nPush to DagsHub]:::storage
+    E -->|Content hash| F[Multi-Model Training\ntrainer.py]:::process
 
-    G & H & I -->|Metrics| J{Champion Selection\nRecall >= 0.70, F1 >= 0.50}
-    J -->|Below threshold| K([Run logged\nNo promotion])
-    J -->|Best model passes| L[MLflow Model Registry\nDagsHub]
+    F --> G[LightGBM]:::model
+    F --> H[Random Forest]:::model
+    F --> I[XGBoost]:::model
+    F --> I2[Isolation Forest\nAnomaly Detection]:::model
 
-    L -->|champion alias| M[FastAPI + Uvicorn\nPort 7860]
-    M --> O[REST API\n/predict]
+    G & H & I -->|Metrics| J{Champion Selection\nRecall >= 0.70, F1 >= 0.50}:::process
+    J -->|Below threshold| K([Run logged\nNo promotion]):::error
+    J -->|Best model passes| L[MLflow Model Registry\nDagsHub]:::storage
+
+    L -->|champion alias| M[FastAPI + Uvicorn\nPort 7860]:::process
+    M --> O[REST API\n/predict]:::process
     
-    O -->|Prediction Log| T[Supabase\nTelemetry Export]
+    O -->|Prediction Log| T[Supabase\nTelemetry Export]:::storage
     
-    U[React + Vite Frontend\nVercel] -->|POST| O
+    U[React + Vite Frontend\nVercel]:::frontend -->|POST| O
     T -->|Fetch Logs| U
 
-    Q([GitHub Actions\nDaily Cron / Manual]) -->|Triggers| B
-    L -->|New champion?| R{Deploy?}
-    R -->|Yes| S[deploy.yml\nHF Spaces push]
+    Q([GitHub Actions\nDaily Cron / Manual]):::external -->|Triggers| B
+    L -->|New champion?| R{Deploy?}:::process
+    R -->|Yes| S[deploy.yml\nHF Spaces push]:::external
 ```
 
 ---
