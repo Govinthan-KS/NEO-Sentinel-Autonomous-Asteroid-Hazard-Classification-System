@@ -81,7 +81,7 @@ export function Footer() {
                 </a>
               </li>
               <li><a href="#" className="text-[13px] text-[#8fa3c8] hover:text-white transition-colors">Issue Tracker</a></li>
-              <li><a href="#" className="text-[13px] text-[#8fa3c8] hover:text-white transition-colors">License (MIT)</a></li>
+              <li><a href="#" className="text-[13px] text-[#8fa3c8] hover:text-white transition-colors">License (Apache 2.0)</a></li>
             </ul>
           </div>
 
