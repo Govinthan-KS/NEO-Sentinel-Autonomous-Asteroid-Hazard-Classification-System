@@ -47,13 +47,13 @@ The frontend is a beautifully designed, responsive React + Vite application (dep
 
 ```mermaid
 flowchart TD
-    %% Styling Classes
-    classDef external fill:#0f172a,stroke:#3b82f6,stroke-width:2px,color:#fff
-    classDef process fill:#1e1b4b,stroke:#8b5cf6,stroke-width:2px,color:#fff
-    classDef storage fill:#064e3b,stroke:#10b981,stroke-width:2px,color:#fff
-    classDef model fill:#4c1d95,stroke:#c4b5fd,stroke-width:2px,color:#fff
-    classDef error fill:#7f1d1d,stroke:#fca5a5,stroke-width:2px,color:#fff
-    classDef frontend fill:#000000,stroke:#eef3ff,stroke-width:2px,color:#fff
+    %% Premium Styling Classes
+    classDef external fill:#f1f5f9,stroke:#94a3b8,stroke-width:2px,color:#0f172a
+    classDef process fill:#ffffff,stroke:#cbd5e1,stroke-width:2px,color:#1e293b
+    classDef storage fill:#064e3b,stroke:#10b981,stroke-width:2px,color:#ffffff
+    classDef model fill:#fef3c7,stroke:#f59e0b,stroke-width:2px,color:#92400e
+    classDef error fill:#fff1f2,stroke:#f43f5e,stroke-width:2px,color:#9f1239
+    classDef frontend fill:#0f172a,stroke:#38bdf8,stroke-width:2px,color:#ffffff
 
     A([NASA NeoWs API]):::external -->|Daily pull + Retries| B[Data Ingestion\ningestion.py]:::process
     B -->|Raw CSV| C{Data Validation\nGreat Expectations}:::process
@@ -81,6 +81,9 @@ flowchart TD
     Q([GitHub Actions\nDaily Cron / Manual]):::external -->|Triggers| B
     L -->|New champion?| R{Deploy?}:::process
     R -->|Yes| S[deploy.yml\nHF Spaces push]:::external
+
+    %% Data Flow Animations (Dashed lines for data transfer)
+    linkStyle default stroke-width:2px,stroke-dasharray: 5 5
 ```
 
 ---
