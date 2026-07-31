@@ -1,4 +1,5 @@
 import { memo } from 'react';
+import { bgImage } from '@/assets/bgImage';
 
 export const AnimatedBackground = memo(function AnimatedBackground() {
   return (
@@ -8,7 +9,7 @@ export const AnimatedBackground = memo(function AnimatedBackground() {
       <div 
         className="absolute inset-[-10%] bg-cover bg-center animate-[slowPan_60s_ease-in-out_infinite_alternate]"
         style={{
-          backgroundImage: 'url("/Earth-Asteroids.jpg")',
+          backgroundImage: `url(${bgImage})`,
           opacity: 0.6
         }}
       ></div>
