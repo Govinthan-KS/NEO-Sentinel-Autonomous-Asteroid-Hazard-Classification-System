@@ -173,16 +173,28 @@ def version_and_push_data() -> str:
     logger.info(
         f"[NEO-Sentinel] Pushing dataset to DagsHub DVC remote '{DVC_REMOTE_NAME}'..."
     )
-    ok, msg = _run_dvc(["push"], timeout=DVC_PUSH_TIMEOUT)
-
-    if ok:
-        logger.info(
-            f"[NEO-Sentinel] DVC push succeeded — "
-            f"dataset version {fresh_hash[:12]}… is now on DagsHub remote."
-        )
-    else:
-        logger.error(f"[NEO-Sentinel] DVC push failed: {msg}")
-        raise RuntimeError(f"DVC push failed: {msg}")
+    
+    max_retries = 3
+    retry_delay = 10
+    
+    import time
+    for attempt in range(1, max_retries + 1):
+        ok, msg = _run_dvc(["push"], timeout=DVC_PUSH_TIMEOUT)
+        
+        if ok:
+            logger.info(
+                f"[NEO-Sentinel] DVC push succeeded — "
+                f"dataset version {fresh_hash[:12]}… is now on DagsHub remote."
+            )
+            break
+        else:
+            logger.warning(f"[NEO-Sentinel] DVC push attempt {attempt}/{max_retries} failed: {msg}")
+            if attempt < max_retries:
+                logger.info(f"[NEO-Sentinel] Retrying DVC push in {retry_delay} seconds...")
+                time.sleep(retry_delay)
+            else:
+                logger.error(f"[NEO-Sentinel] DVC push failed after {max_retries} attempts.")
+                raise RuntimeError(f"DVC push failed: {msg}")
 
     return fresh_hash
 
