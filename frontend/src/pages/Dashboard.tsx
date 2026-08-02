@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
@@ -9,6 +9,8 @@ import { ExportMenu } from '@/components/ui/ExportMenu';
 import { Select } from '@/components/ui/Select';
 import { Switch } from '@/components/ui/Switch';
 import { NumberInput } from '@/components/ui/NumberInput';
+import { showSuccessToast, showWarningToast, handleApiError, showInfoToast } from '@/utils/toast';
+import { RefreshCw, Copy } from 'lucide-react';
 import {
   LineChart,
   Line,
@@ -22,6 +24,7 @@ import {
 
 export function Dashboard() {
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [champion, setChampion] = useState<any>(null);
@@ -44,48 +47,55 @@ export function Dashboard() {
   const [recPage, setRecPage] = useState(1);
   const [recRows, setRecRows] = useState(10);
 
+  const fetchData = useCallback(async (isRefresh = false) => {
+    if (isRefresh && refreshing) {
+      showWarningToast('Action in progress', 'Please wait for the current refresh to finish.');
+      return;
+    }
+    if (isRefresh) setRefreshing(true);
+    try {
+      const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:7860';
+      const [champRes, leadRes, sumRes, recRes, trendRes] = await Promise.all([
+        fetch(`${baseUrl}/dashboard/champion`),
+        fetch(`${baseUrl}/dashboard/leaderboard`),
+        fetch(`${baseUrl}/dashboard/summary`),
+        fetch(`${baseUrl}/dashboard/recent?limit=50`),
+        fetch(`${baseUrl}/dashboard/trends`)
+      ]);
+
+      if (!champRes.ok) throw new Error('Failed to load dashboard data');
+
+      const [champData, leadData, sumData, recData, trendData] = await Promise.all([
+        champRes.json(),
+        leadRes.json(),
+        sumRes.json(),
+        recRes.json(),
+        trendRes.json()
+      ]);
+
+      setChampion(champData);
+      setLeaderboard(leadData);
+      setSummary(sumData);
+      setRecent(recData);
+      setTrends(trendData);
+      if (isRefresh) showSuccessToast('Dashboard Synced', 'Live telemetry and model metrics updated.');
+    } catch (err: any) {
+      setError(err.message || 'Error loading dashboard data');
+      handleApiError(err);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [refreshing]);
+
   useEffect(() => {
-    let mounted = true;
-    const fetchData = async () => {
-      try {
-        const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:7860';
-        const [champRes, leadRes, sumRes, recRes, trendRes] = await Promise.all([
-          fetch(`${baseUrl}/dashboard/champion`),
-          fetch(`${baseUrl}/dashboard/leaderboard`),
-          fetch(`${baseUrl}/dashboard/summary`),
-          fetch(`${baseUrl}/dashboard/recent?limit=50`), // Kept at 50 as requested
-          fetch(`${baseUrl}/dashboard/trends`)
-        ]);
-
-        if (!champRes.ok) throw new Error('Failed to load champion data');
-
-        const [champData, leadData, sumData, recData, trendData] = await Promise.all([
-          champRes.json(),
-          leadRes.json(),
-          sumRes.json(),
-          recRes.json(),
-          trendRes.json()
-        ]);
-
-        if (mounted) {
-          setChampion(champData);
-          setLeaderboard(leadData);
-          setSummary(sumData);
-          setRecent(recData);
-          setTrends(trendData);
-          setLoading(false);
-        }
-      } catch (err: any) {
-        if (mounted) {
-          setError(err.message || 'Error loading dashboard data');
-          setLoading(false);
-        }
-      }
-    };
-
     fetchData();
-    return () => { mounted = false; };
   }, []);
+
+  const copyToClipboard = (text: string, type: string) => {
+    navigator.clipboard.writeText(text);
+    showInfoToast('Copied to Clipboard', `${type} copied successfully.`);
+  };
 
   // Leaderboard Logic
   const filteredLeaderboard = useMemo(() => {
@@ -175,9 +185,18 @@ export function Dashboard() {
       <Navbar />
 
       <main className="flex-grow relative z-10 max-w-[1320px] mx-auto w-full px-10 py-11 pb-[100px] flex flex-col gap-6">
-        <div>
-          <div className="font-mono text-[11px] tracking-[0.14em] text-[#c7d3ee] uppercase mb-1.5">Operations</div>
-          <h1 className="text-[28px] font-bold m-0 text-[#eef3ff]">Live Dashboard</h1>
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="font-mono text-[11px] tracking-[0.14em] text-[#c7d3ee] uppercase mb-1.5">Operations</div>
+            <h1 className="text-[28px] font-bold m-0 text-[#eef3ff]">Live Dashboard</h1>
+          </div>
+          <button 
+            onClick={() => fetchData(true)}
+            className={`p-2.5 rounded-xl bg-gradient-to-br from-[rgba(90,200,250,0.1)] to-[rgba(163,230,53,0.05)] border border-[rgba(150,190,255,0.2)] text-[#c7d3ee] hover:text-white hover:border-[rgba(150,190,255,0.4)] transition-all ${refreshing ? 'opacity-50 cursor-wait pointer-events-auto' : ''}`}
+            title="Refresh Telemetry"
+          >
+            <RefreshCw size={18} className={refreshing ? "animate-spin text-primary-bright" : ""} />
+          </button>
         </div>
 
         {error && (
@@ -264,8 +283,15 @@ export function Dashboard() {
                     </div>
                     <div>
                       <div className="text-[11px] tracking-[0.1em] text-accent-lime uppercase mb-1">Champion Model</div>
-                      <div className="font-mono text-lg font-semibold text-text-primary">
+                      <div className="font-mono text-lg font-semibold text-text-primary flex items-center gap-2">
                         {champion.run_name || champion.model_name || 'Unknown'}
+                        <button 
+                          onClick={() => copyToClipboard(champion.run_id, 'Champion Run ID')}
+                          className="p-1 rounded bg-[rgba(150,190,255,0.08)] hover:bg-[rgba(150,190,255,0.2)] border border-transparent hover:border-[rgba(150,190,255,0.3)] text-[#5c6f94] hover:text-[#eef3ff] transition-all"
+                          title="Copy Run ID"
+                        >
+                          <Copy size={14} />
+                        </button>
                       </div>
                     </div>
                   </div>

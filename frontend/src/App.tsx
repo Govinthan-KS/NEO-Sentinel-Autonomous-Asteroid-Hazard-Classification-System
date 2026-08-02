@@ -66,9 +66,26 @@ function AnimatedRoutes() {
   );
 }
 
+import { Toaster } from 'sonner';
+
 function App() {
   return (
     <Router>
+      <Toaster 
+        position="top-right" 
+        duration={4000}
+        closeButton
+        toastOptions={{
+          style: {
+            background: 'rgba(9, 13, 22, 0.95)',
+            backdropFilter: 'blur(12px)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            color: '#f1f5f9',
+          },
+          className: 'text-slate-100',
+          descriptionClassName: 'text-slate-400',
+        }}
+      />
       <AnimatedRoutes />
     </Router>
   );
