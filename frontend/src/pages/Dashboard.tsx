@@ -11,6 +11,7 @@ import { Switch } from '@/components/ui/Switch';
 import { NumberInput } from '@/components/ui/NumberInput';
 import { showSuccessToast, showWarningToast, handleApiError, showInfoToast } from '@/utils/toast';
 import { RefreshCw, Copy } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 import {
   LineChart,
   Line,
@@ -23,6 +24,7 @@ import {
 } from 'recharts';
 
 export function Dashboard() {
+  const { session } = useAuth();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -55,12 +57,17 @@ export function Dashboard() {
     if (isRefresh) setRefreshing(true);
     try {
       const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:7860';
+      const headers: HeadersInit = {};
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`;
+      }
+
       const [champRes, leadRes, sumRes, recRes, trendRes] = await Promise.all([
-        fetch(`${baseUrl}/dashboard/champion`),
-        fetch(`${baseUrl}/dashboard/leaderboard`),
-        fetch(`${baseUrl}/dashboard/summary`),
-        fetch(`${baseUrl}/dashboard/recent?limit=50`),
-        fetch(`${baseUrl}/dashboard/trends`)
+        fetch(`${baseUrl}/dashboard/champion`, { headers }),
+        fetch(`${baseUrl}/dashboard/leaderboard`, { headers }),
+        fetch(`${baseUrl}/dashboard/summary`, { headers }),
+        fetch(`${baseUrl}/dashboard/recent?limit=50`, { headers }),
+        fetch(`${baseUrl}/dashboard/trends`, { headers })
       ]);
 
       if (!champRes.ok) throw new Error('Failed to load dashboard data');
@@ -86,7 +93,7 @@ export function Dashboard() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [refreshing]);
+  }, [refreshing, session?.access_token]);
 
   useEffect(() => {
     fetchData();
@@ -184,8 +191,8 @@ export function Dashboard() {
       <AnimatedBackground />
       <Navbar />
 
-      <main className="flex-grow relative z-10 max-w-[1320px] mx-auto w-full px-10 py-11 pb-[100px] flex flex-col gap-6">
-        <div className="flex items-center justify-between">
+      <main className="flex-grow relative z-10 max-w-[1320px] mx-auto w-full px-6 md:px-10 py-11 pb-[100px] flex flex-col gap-6">
+        <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
             <div className="font-mono text-[11px] tracking-[0.14em] text-[#c7d3ee] uppercase mb-1.5">Operations</div>
             <h1 className="text-[28px] font-bold m-0 text-[#eef3ff]">Live Dashboard</h1>
@@ -234,7 +241,7 @@ export function Dashboard() {
           <>
             {/* Telemetry Stat Cards */}
             <motion.div 
-              className="grid grid-cols-4 gap-4"
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4 }}
@@ -295,7 +302,7 @@ export function Dashboard() {
                       </div>
                     </div>
                   </div>
-                  <div className="flex gap-7">
+                  <div className="flex gap-7 flex-wrap">
                     <div>
                       <div className="text-[11px] text-[#c7d3ee] mb-1">Recall</div>
                       <div className="font-mono text-[17px] font-semibold text-primary-bright">

@@ -1,12 +1,16 @@
-from fastapi import APIRouter, Request, BackgroundTasks, HTTPException
+from fastapi import APIRouter, Request, BackgroundTasks, HTTPException, Depends
 from fastapi.responses import JSONResponse
 import pandas as pd
 import os
 import datetime
-from asteroid_classifier.api.schemas import AsteroidFeatures, PredictionResponse, ExplainResponse
+from asteroid_classifier.api.schemas import AsteroidFeatures, PredictionResponse, ExplainResponse, ContactRequest
 from asteroid_classifier.core.logging import get_logger
 
 from asteroid_classifier.data.prediction_logger import log_prediction
+from asteroid_classifier.api.auth import get_current_user, rate_limit_predict, rate_limit_contact
+
+import resend
+resend.api_key = os.getenv("RESEND_API_KEY", "")
 
 router = APIRouter()
 logger = get_logger()
@@ -45,8 +49,14 @@ async def health() -> dict:
 
 
 @router.post("/predict", response_model=PredictionResponse)
-async def predict(request: Request, features: AsteroidFeatures, background_tasks: BackgroundTasks):
-    logger.info(f"Received prediction request shape: {features.model_dump()}")
+async def predict(
+    request: Request, 
+    features: AsteroidFeatures, 
+    background_tasks: BackgroundTasks,
+    current_user: dict = Depends(get_current_user),
+    _: dict = Depends(rate_limit_predict)
+):
+    logger.info(f"Received prediction request shape: {features.model_dump()} from user {current_user.get('user_id')}")
     predictor = request.app.state.predictor
     
     res = predictor.predict(features.model_dump())
@@ -73,8 +83,13 @@ async def predict(request: Request, features: AsteroidFeatures, background_tasks
     return response
 
 @router.post("/explain", response_model=ExplainResponse)
-async def explain(request: Request, features: AsteroidFeatures):
-    logger.info(f"Received explanation request shape: {features.model_dump()}")
+async def explain(
+    request: Request, 
+    features: AsteroidFeatures,
+    current_user: dict = Depends(get_current_user),
+    _: dict = Depends(rate_limit_predict)
+):
+    logger.info(f"Received explanation request shape: {features.model_dump()} from user {current_user.get('user_id')}")
     predictor = request.app.state.predictor
 
     try:
@@ -90,3 +105,45 @@ async def explain(request: Request, features: AsteroidFeatures):
         logger.error(f"Failed to generate explanation: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.post("/contact", response_model=dict)
+async def contact(
+    request: Request,
+    payload: ContactRequest,
+    current_user: dict | None = Depends(rate_limit_contact)
+):
+    if payload.honeypot:
+        logger.info("Bot detected via honeypot. Ignoring contact request.")
+        return {"status": "ok"}
+    
+    dest_email = os.getenv("CONTACT_DESTINATION_EMAIL")
+    if not dest_email or not resend.api_key:
+        logger.error("Resend API key or destination email not configured.")
+        raise HTTPException(status_code=500, detail="Email configuration error.")
+        
+    user_id = current_user.get("user_id") if current_user else "Guest"
+    
+    html_content = f"""
+    <div style="font-family: monospace; background-color: #05070d; color: #c7d3ee; padding: 20px;">
+        <h2 style="color: #a3e635; border-bottom: 1px solid #1a2333; padding-bottom: 10px;">NEO-Sentinel Support Request</h2>
+        <p><strong>From:</strong> {payload.name} &lt;{payload.email}&gt;</p>
+        <p><strong>User ID:</strong> {user_id}</p>
+        <p><strong>Subject:</strong> {payload.subject}</p>
+        <div style="background-color: #0a0d16; padding: 15px; border: 1px solid #1a2333; border-radius: 5px; margin-top: 20px;">
+            {payload.message}
+        </div>
+    </div>
+    """
+    
+    try:
+        resend.Emails.send({
+            "from": "NEO-Sentinel <onboarding@resend.dev>",
+            "to": dest_email,
+            "subject": f"Support Request: {payload.subject}",
+            "html": html_content,
+            "reply_to": payload.email
+        })
+        logger.info(f"Contact email sent successfully from {payload.email}")
+        return {"status": "ok", "message": "Email sent successfully"}
+    except Exception as e:
+        logger.error(f"Failed to send email via Resend: {e}")
+        raise HTTPException(status_code=500, detail="Failed to send email.")

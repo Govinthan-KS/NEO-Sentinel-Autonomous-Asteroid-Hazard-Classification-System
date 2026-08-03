@@ -29,7 +29,7 @@ export function NumberInput({ value, onChange, step = 1, min, max, placeholder, 
   };
 
   return (
-    <div className={`relative flex items-center bg-[rgba(12,16,28,0.6)] backdrop-blur-md border border-[rgba(150,190,255,0.2)] rounded-lg transition-colors hover:border-[rgba(90,200,250,0.5)] shadow-inner group focus-within:border-primary-bright ${className}`}>
+    <div className={`relative flex items-center min-h-[44px] bg-[rgba(12,16,28,0.6)] backdrop-blur-md border border-[rgba(150,190,255,0.2)] rounded-lg transition-colors hover:border-[rgba(90,200,250,0.5)] shadow-inner group focus-within:border-primary-bright ${className}`}>
       <input
         type="number"
         value={value}

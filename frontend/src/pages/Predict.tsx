@@ -7,6 +7,7 @@ import { AnimatedGauge } from '@/components/ui/AnimatedGauge';
 import { ShapBars, type ShapFeature } from '@/components/ui/ShapBars';
 import { NumberInput } from '@/components/ui/NumberInput';
 import { showSuccessToast, showInfoToast, showWarningToast, handleApiError } from '@/utils/toast';
+import { useAuth } from '@/context/AuthContext';
 
 interface TelemetryForm {
   absolute_magnitude_h: number;
@@ -27,6 +28,7 @@ const PRESETS = [
 ];
 
 export function Predict() {
+  const { session } = useAuth();
   const [form, setForm] = useState<TelemetryForm>(PRESETS[1].values);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -62,15 +64,22 @@ export function Predict() {
         orbiting_body: form.orbiting_body
       };
 
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json'
+      };
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`;
+      }
+
       const [predictRes, explainRes] = await Promise.all([
         fetch(`${baseUrl}/predict`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
           body: JSON.stringify(payload)
         }),
         fetch(`${baseUrl}/explain`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
           body: JSON.stringify(payload)
         })
       ]);
@@ -122,16 +131,16 @@ export function Predict() {
       <AnimatedBackground />
       <Navbar />
 
-      <main className="flex-grow relative z-10 max-w-[1320px] mx-auto w-full px-10 py-11 pb-[100px]">
+      <main className="flex-grow relative z-10 max-w-[1320px] mx-auto w-full px-6 md:px-10 py-11 pb-[100px]">
         <div className="mb-8">
           <div className="font-mono text-[11px] tracking-[0.14em] text-muted uppercase mb-2">Prediction + Explanation</div>
           <h1 className="text-[30px] font-bold m-0">Classify an Asteroid</h1>
         </div>
 
-        <div className="grid grid-cols-[400px_1fr] gap-6 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-6 items-start">
           
           {/* Telemetry Input Form */}
-          <GlassCard className="p-7 sticky top-[100px]">
+          <GlassCard className="p-7 lg:sticky lg:top-[100px]">
             <div className="mb-6 p-4 rounded-xl bg-[rgba(163,230,53,0.08)] border border-[rgba(163,230,53,0.3)] shadow-[0_0_20px_rgba(163,230,53,0.05)]">
               <h4 className="text-[#eef3ff] text-[15px] font-bold mb-2 flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-accent-lime shadow-[0_0_8px_var(--accent-lime)]"></span>
@@ -154,7 +163,7 @@ export function Predict() {
                     setForm(p.values);
                     showInfoToast('Preset Loaded', `Loaded values for ${p.label}.`);
                   }}
-                  className="px-3.5 py-[7px] rounded-full bg-[rgba(150,190,255,0.08)] border border-[rgba(150,190,255,0.22)] text-[#c7d3ee] text-xs font-mono hover:bg-[rgba(150,190,255,0.15)] transition-colors"
+                  className="min-h-[44px] px-3.5 py-[7px] flex items-center justify-center rounded-full bg-[rgba(150,190,255,0.08)] border border-[rgba(150,190,255,0.22)] text-[#c7d3ee] text-xs font-mono hover:bg-[rgba(150,190,255,0.15)] transition-colors"
                 >
                   {p.label}
                 </button>
@@ -209,13 +218,13 @@ export function Predict() {
                   value={form.orbiting_body}
                   readOnly
                   disabled
-                  className="bg-[rgba(5,7,13,0.4)] border border-[rgba(150,190,255,0.1)] rounded-lg px-3 py-2 text-[#5c6f94] text-sm font-mono cursor-not-allowed"
+                  className="min-h-[44px] bg-[rgba(5,7,13,0.4)] border border-[rgba(150,190,255,0.1)] rounded-lg px-3 py-2 text-[#5c6f94] text-sm font-mono cursor-not-allowed"
                 />
               </label>
 
               <button 
                 onClick={handleRunClassification}
-                className={`mt-2 p-3.5 rounded-xl flex items-center justify-center gap-2 bg-gradient-to-br from-[rgba(90,200,250,0.25)] to-[rgba(163,230,53,0.18)] border border-[rgba(150,190,255,0.4)] shadow-[0_0_24px_rgba(90,200,250,0.15)] text-text-primary font-bold text-sm hover:scale-[1.02] active:scale-[0.98] transition-all ${loading ? 'opacity-50 cursor-wait pointer-events-auto' : ''}`}
+                className={`mt-2 min-h-[44px] p-3.5 rounded-xl flex items-center justify-center gap-2 bg-gradient-to-br from-[rgba(90,200,250,0.25)] to-[rgba(163,230,53,0.18)] border border-[rgba(150,190,255,0.4)] shadow-[0_0_24px_rgba(90,200,250,0.15)] text-text-primary font-bold text-sm hover:scale-[1.02] active:scale-[0.98] transition-all ${loading ? 'opacity-50 cursor-wait pointer-events-auto' : ''}`}
               >
                 {loading && (
                   <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -256,7 +265,7 @@ export function Predict() {
               <>
                 {/* Verdict Card */}
                 <div 
-                  className={`p-[30px] rounded-[20px] border shadow-[0_0_40px_rgba(0,0,0,0.1)] flex items-center justify-between gap-[30px] transition-colors`}
+                  className={`p-6 sm:p-[30px] rounded-[20px] border shadow-[0_0_40px_rgba(0,0,0,0.1)] flex flex-col sm:flex-row items-center justify-between gap-6 sm:gap-[30px] text-center sm:text-left transition-colors`}
                   style={{
                     backgroundColor: prediction.isHazardous ? 'rgba(255,84,112,0.09)' : 'rgba(163,230,53,0.07)',
                     borderColor: prediction.isHazardous ? 'rgba(255,84,112,0.35)' : 'rgba(163,230,53,0.3)',
@@ -303,7 +312,11 @@ export function Predict() {
                     </span>
                   </div>
                   <div className="font-mono text-[13px] text-[#c7d3ee]">
-                    score {prediction.anomalyScore != null ? (prediction.anomalyScore > 0 ? '+' : '') + prediction.anomalyScore.toFixed(3) : 'N/A'}
+                    {prediction.anomalyScore != null ? (
+                      <span className="flex items-center gap-1.5">
+                        index <span className="text-white font-bold">{Math.max(0, Math.min(100, (0.5 - prediction.anomalyScore) * 100)).toFixed(1)}%</span>
+                      </span>
+                    ) : 'N/A'}
                   </div>
                 </div>
 

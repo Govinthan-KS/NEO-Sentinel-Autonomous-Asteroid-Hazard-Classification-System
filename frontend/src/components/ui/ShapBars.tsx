@@ -42,13 +42,13 @@ export function ShapBars({ features }: ShapBarsProps) {
           return (
             <div key={feature.name} className="flex items-center w-full relative h-7">
               {/* Left side (negative) */}
-              <div className="flex-1 flex justify-end items-center pr-2.5 gap-2.5 overflow-visible">
+              <div className="flex-1 flex justify-end items-center pr-2.5 gap-2.5 min-w-0">
                 {!isPositive && (
                   <>
-                    <span className="text-[13px] font-mono font-medium text-[#eef3ff] whitespace-nowrap drop-shadow-md">
+                    <span className="text-[13px] font-mono font-medium text-[#eef3ff] truncate drop-shadow-md" title={feature.name}>
                       {feature.name}
                     </span>
-                    <span className="text-xs font-mono font-bold opacity-90" style={{ color: barColor }}>
+                    <span className="text-xs font-mono font-bold opacity-90 shrink-0" style={{ color: barColor }}>
                       {feature.value.toFixed(3)}
                     </span>
                     <motion.div
@@ -61,7 +61,7 @@ export function ShapBars({ features }: ShapBarsProps) {
                   </>
                 )}
                 {isPositive && (
-                  <span className="text-[13px] font-mono font-medium text-[#eef3ff] whitespace-nowrap text-right w-full block drop-shadow-md">
+                  <span className="text-[13px] font-mono font-medium text-[#eef3ff] truncate text-right w-full block drop-shadow-md" title={feature.name}>
                     {feature.name}
                   </span>
                 )}
@@ -71,7 +71,7 @@ export function ShapBars({ features }: ShapBarsProps) {
               <div className="w-1.5 z-20"></div>
 
               {/* Right side (positive) */}
-              <div className="flex-1 flex justify-start items-center pl-2.5 gap-2.5 overflow-visible">
+              <div className="flex-1 flex justify-start items-center pl-2.5 gap-2.5 min-w-0">
                 {isPositive && (
                   <>
                     <motion.div
@@ -81,16 +81,16 @@ export function ShapBars({ features }: ShapBarsProps) {
                       animate={{ width: `${widthPercent}%` }}
                       transition={{ delay: i * 0.1, duration: 0.5, ease: "easeOut" }}
                     />
-                    <span className="text-xs font-mono font-bold opacity-90" style={{ color: barColor }}>
+                    <span className="text-xs font-mono font-bold opacity-90 shrink-0" style={{ color: barColor }}>
                       +{feature.value.toFixed(3)}
                     </span>
-                    <span className="text-[13px] font-mono font-medium text-[#eef3ff] whitespace-nowrap drop-shadow-md">
+                    <span className="text-[13px] font-mono font-medium text-[#eef3ff] truncate drop-shadow-md" title={feature.name}>
                       {feature.name}
                     </span>
                   </>
                 )}
                 {!isPositive && (
-                  <span className="text-[13px] font-mono font-medium text-[#eef3ff] whitespace-nowrap text-left w-full block drop-shadow-md">
+                  <span className="text-[13px] font-mono font-medium text-[#eef3ff] truncate text-left w-full block drop-shadow-md" title={feature.name}>
                     {feature.name}
                   </span>
                 )}

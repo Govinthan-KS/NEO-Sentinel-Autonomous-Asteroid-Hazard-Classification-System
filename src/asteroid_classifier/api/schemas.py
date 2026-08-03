@@ -83,3 +83,10 @@ class TrendPoint(BaseModel):
     total: int
     hazardous: int
     anomalies: int
+
+class ContactRequest(BaseModel):
+    name: str = Field(..., description="Name of sender")
+    email: str = Field(..., description="Email of sender")
+    subject: str = Field(..., description="Subject of message")
+    message: str = Field(..., description="Body of message")
+    honeypot: str | None = Field(default=None, description="Honeypot field for bots")

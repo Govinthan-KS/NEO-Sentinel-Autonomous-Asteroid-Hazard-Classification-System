@@ -4,10 +4,10 @@ import { Shield, Activity, Code, ExternalLink } from 'lucide-react';
 export function Footer() {
   return (
     <footer className="relative z-10 w-full mt-auto bg-gradient-to-t from-[#05070d] to-transparent pt-20 pb-8 border-t border-[rgba(150,190,255,0.05)]">
-      <div className="max-w-[1320px] mx-auto px-10">
+      <div className="max-w-[1320px] mx-auto px-6 md:px-10">
         
         {/* Top Section */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 md:gap-12 mb-10 md:mb-16">
           
           {/* Brand Col */}
           <div className="col-span-1 md:col-span-1">
@@ -37,7 +37,7 @@ export function Footer() {
               <li><Link to="/" className="text-[13px] text-[#8fa3c8] hover:text-white transition-colors">Mission Control (Home)</Link></li>
               <li><Link to="/predict" className="text-[13px] text-[#8fa3c8] hover:text-white transition-colors">Run Classification</Link></li>
               <li><Link to="/dashboard" className="text-[13px] text-[#8fa3c8] hover:text-white transition-colors">Global Telemetry Dashboard</Link></li>
-              <li><Link to="/dashboard" className="text-[13px] text-[#8fa3c8] hover:text-white transition-colors">Model Leaderboard</Link></li>
+              <li><Link to="/contact" className="text-[13px] text-[#8fa3c8] hover:text-white transition-colors">Contact Support</Link></li>
             </ul>
           </div>
 
@@ -61,8 +61,9 @@ export function Footer() {
                 </a>
               </li>
               <li>
-                <a href="#" className="text-[13px] text-[#8fa3c8] hover:text-white transition-colors flex items-center gap-1.5 group">
+                <a href="https://github.com/Govinthan-KS/Asteroid-Hazard-Classifier#architecture" target="_blank" rel="noreferrer" className="text-[13px] text-[#8fa3c8] hover:text-white transition-colors flex items-center gap-1.5 group">
                   Architecture Overview
+                  <ExternalLink size={12} className="opacity-40 group-hover:opacity-100 transition-opacity" />
                 </a>
               </li>
             </ul>
@@ -80,8 +81,13 @@ export function Footer() {
                   Repository
                 </a>
               </li>
-              <li><a href="#" className="text-[13px] text-[#8fa3c8] hover:text-white transition-colors">Issue Tracker</a></li>
-              <li><a href="#" className="text-[13px] text-[#8fa3c8] hover:text-white transition-colors">License (Apache 2.0)</a></li>
+              <li>
+                <a href="https://github.com/Govinthan-KS/Asteroid-Hazard-Classifier/issues" target="_blank" rel="noreferrer" className="text-[13px] text-[#8fa3c8] hover:text-white transition-colors flex items-center gap-1.5 group">
+                  Issue Tracker
+                  <ExternalLink size={12} className="opacity-40 group-hover:opacity-100 transition-opacity" />
+                </a>
+              </li>
+              <li><Link to="/license" className="text-[13px] text-[#8fa3c8] hover:text-white transition-colors">License (Apache 2.0)</Link></li>
             </ul>
           </div>
 
@@ -89,14 +95,14 @@ export function Footer() {
 
         {/* Bottom Section */}
         <div className="pt-8 border-t border-[rgba(150,190,255,0.08)] flex flex-col md:flex-row justify-between items-center gap-4">
-          <span className="font-mono text-[11px] text-[#5c6f94] tracking-wider">
+          <span className="font-mono text-[13px] text-[#5c6f94] tracking-wider">
             © {new Date().getFullYear()} NEO-Sentinel Planetary Defense. All Systems Go.
           </span>
           <div className="flex items-center gap-6">
-            <span className="font-mono text-[11px] text-[#5c6f94]">v2.4.1 (STABLE)</span>
+            <span className="font-mono text-[13px] text-[#5c6f94]">v2.4.1 (STABLE)</span>
             <div className="flex gap-4">
-              <Link to="/privacy" className="text-[11px] text-[#a5badf] hover:text-[#eef3ff] transition-colors">Privacy Policy</Link>
-              <Link to="/terms" className="text-[11px] text-[#a5badf] hover:text-[#eef3ff] transition-colors">Terms of Service</Link>
+              <Link to="/privacy" className="text-[13px] text-[#a5badf] hover:text-[#eef3ff] transition-colors">Privacy Policy</Link>
+              <Link to="/terms" className="text-[13px] text-[#a5badf] hover:text-[#eef3ff] transition-colors">Terms of Service</Link>
             </div>
           </div>
         </div>
