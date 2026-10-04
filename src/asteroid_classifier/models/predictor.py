@@ -159,7 +159,11 @@ class AsteroidPredictor:
             else:
                 self.logger.info("SHAP values returned as a single array (likely XGBoost/LightGBM).")
                 
-            if shap_vals.ndim == 2:
+            if shap_vals.ndim == 3:
+                # e.g. shape (n_samples, n_features, n_classes)
+                shap_vals = shap_vals[0, :, 1]
+            elif shap_vals.ndim == 2:
+                # e.g. shape (n_samples, n_features)
                 shap_vals = shap_vals[0]
                 
             # Flatten transformed features if needed (e.g. if it's a sparse matrix)
@@ -171,10 +175,16 @@ class AsteroidPredictor:
             # 4. Map contributions
             contributions = []
             for name, val, shap_val in zip(feature_names, feat_values, shap_vals):
+                import numpy as np
+                if isinstance(shap_val, np.ndarray) and shap_val.size > 1:
+                    shap_val = shap_val[1] if len(shap_val) > 1 else shap_val[0]
+                if isinstance(val, np.ndarray) and val.size > 1:
+                    val = val[0]
+                    
                 contributions.append({
                     "feature_name": name,
-                    "feature_value": float(val),
-                    "shap_contribution": float(shap_val)
+                    "feature_value": float(np.ravel(val)[0]) if isinstance(val, np.ndarray) else float(val),
+                    "shap_contribution": float(np.ravel(shap_val)[0]) if isinstance(shap_val, np.ndarray) else float(shap_val)
                 })
                 
             # Sort by absolute contribution descending
